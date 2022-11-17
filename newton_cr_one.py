@@ -2,6 +2,8 @@
 """
 Created on Wed Nov  9 17:57:49 2022
 Rev 1.1: 17 Nov 22 adds protection for both x and y = 0
+Rev 1.2: 17 Nov 22 palette defined separately and imported avoiding 
+                   editing this file for each change.
 @author: Owner
 
 The program creates an image of the basins of attraction for the cube 
@@ -12,6 +14,7 @@ in the current directory.
 from numpy import ones, uint8
 from PIL import Image
 from scipy import nextafter
+import palette5
 
 def belongs_to_root(x, y, limit):
     #given (x,y), is the point close to one of the cube roots of one?
@@ -53,11 +56,7 @@ def iteration(x, y, maxIter):
     return rootFound
 
 #MAIN
-palette = [(0x00, 0x10, 0x80),
-           (0x10, 0x80, 0x10), 
-           (0xf0, 0xd0, 0x00),
-           (0xFF, 0x00, 0x00),
-           (0xfc, 0xfc, 0xfc)]
+palette = palette5.palette
 
 MAX_ITER = 16
 aspect = 3/4
