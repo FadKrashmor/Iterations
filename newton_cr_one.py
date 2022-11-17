@@ -1,43 +1,50 @@
 # -*- coding: utf-8 -*-
 """
 Created on Wed Nov  9 17:57:49 2022
-
+Rev 1.1: 17 Nov 22 adds protection for both x and y = 0
 @author: Owner
 
 The program creates an image of the basins of attraction for the cube 
-roots of one. Image is shown to screen and saved with name tempnimage.png 
+roots of one,using Newton's method. 
+The image is shown to screen and saved with name tempnimage.png 
 in the current directory.
 """
-import numpy as np
+from numpy import ones, uint8
 from PIL import Image
+from scipy import nextafter
 
-def belongs_to_root(x, y):
+def belongs_to_root(x, y, limit):
     #given (x,y), is the point close to one of the cube roots of one?
     #returns 0 if not; 1, 2 or 3 depending on which root is close
-    CLOSE_SQ = 0.0025
-    if ((x+0.5)**2 + (y+0.8660254)**2) < CLOSE_SQ:
+    if ((x+0.5)**2 + (y+0.8660254)**2) < limit:
         return 1
-    elif ((x+0.5)**2 + (y-0.8660254)**2) < CLOSE_SQ:
+    elif ((x+0.5)**2 + (y-0.8660254)**2) < limit:
         return 2
-    elif ((x-1)**2 + y**2) < CLOSE_SQ:
+    elif ((x-1)**2 + y**2) < limit:
         return 3
     else:
         return 0
 
 def iteration(x, y, maxIter):
     # Find cube roots of 1 using Newton's method
-    # return:
+    # Return:
     #   0: root not yet determined
     #   1, 2 or 3 for each respective root
-    #   4: (optionally) show roots, commented out
-#    if belongs_to_root(x, y):
-#        return 4
+    #   4: we started at a root
+    #
+    LIMIT = 0.0025 #Terminate iteration when closer than this arbitrary limit
+    if belongs_to_root(x, y, LIMIT/10):#Comment this out if 
+        return 4                       #you don't want the root marked
+    rootFound = 0
     for i in range(maxIter):
+        if (x==0) and (y==0):
+            x = nextafter(0,1)
+            continue
         x_sq, y_sq, d_sq = x*x, y*y, (x*x + y*y)
         temp = 3*(d_sq*d_sq)
         x_new = 2*x/3 + (x_sq - y_sq)/temp
         y_new = 2*y/3 - 2*x*y/temp
-        rootFound = belongs_to_root(x_new, y_new)
+        rootFound = belongs_to_root(x_new, y_new, LIMIT)
         if rootFound:
             break
         x = x_new
@@ -46,24 +53,24 @@ def iteration(x, y, maxIter):
     return rootFound
 
 #MAIN
-palette = [(0xFF, 0xFF, 0xFF),
-           (0xFF, 0xD8, 0x20), 
-           (0x00, 0x10, 0xFF),
-           (0xD0, 0x00, 0xA0),
-           (0x03, 0x03, 0x03)]
+palette = [(0x00, 0x10, 0x80),
+           (0x10, 0x80, 0x10), 
+           (0xf0, 0xd0, 0x00),
+           (0xFF, 0x00, 0x00),
+           (0xfc, 0xfc, 0xfc)]
 
-MAX_ITER = 100
+MAX_ITER = 16
 aspect = 3/4
 xStart = -1.4
 xEnd = 1.4
 yStart = -1.05
 yEnd = yStart + (xEnd - xStart)*aspect
-imageWidth = 600
+imageWidth = 800
 imageHeight = int(imageWidth*aspect)
 dx = (xEnd - xStart)/imageWidth
 dy = (yEnd - yStart)/imageHeight
 
-iArray = np.ones((imageHeight, imageWidth, 3), dtype=np.uint8)
+iArray = ones((imageHeight, imageWidth, 3), dtype=uint8)
 
 #Populate array with colours depending on the result of the iteration
 currentX = xStart
@@ -80,8 +87,6 @@ image = Image.fromarray(iArray)
 image.show()
 try:
     image.save("tempnimage.png", format="PNG")
-#    print("Palette: ", palette)
-#    print("Range: ", xStart, xEnd, ";", yStart, yEnd)
 except:
     print("Couldn't save file")
 
