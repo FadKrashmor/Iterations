@@ -1,12 +1,15 @@
-# Date 18 Nov 22
-# Rev 2.0 : Automatic calculation of end_y
-#           Reports runtime
-#     2.1 : Facility to change first three contour colours
-#     2.2 : Rationalisation of how contours are handled
-#     2.3 : (26 Oct 22) Except ValueError protection for auto_y
-#     2.4 : (18 Nov 22) Camel case for variables.
-#                       Loads contour palette from dictionary in myColour
-#
+""" Date 21 Nov 22
+Generic GUI to set up creation of image from Julia style iterations. Taken 
+from earlier program mbrot_np, rev. 2.5.
+Rev 1.0 Features:
+    * Facility to match x and y scales.
+    * Allows specific number of contours to be shown.
+    * (Having chosen a colour palettte from module myColour) it includes the
+      facility to alter "set colour" and first three contour colours.
+    * Allows for an (undefined) "seed value"" to be set.
+    * Reports runtime, and other info to console.
+@author: Owner
+"""
 from sys import path
 if not "../modules" in path:
     path.append('../modules')
@@ -16,30 +19,34 @@ from datetime import datetime
 from tkinter import Tk, Frame, Label, StringVar, Entry, Button, E, W
 from PIL import Image
 #
-# Iterate z_new := z**2 - c, for range of values of c, z0 = 0
+# Iterate ??
 #
-# The initial figures give the same scale for x and y.
-#
-class MandelbrotGUI:
+class GenIteration():
+    title = "Generic"
     
-    def __init__(self, master):
+    def __init__(self, master, seed=[0, 0]):
         self.master = master
-        master.title("Mandelbrot Delay:  z0 = 0;  z := z**2 - c;  c = (x, iy)")
+        master.title(self.title)
 
-        self.SAVE_IMAGE = True
+        self.xSeed = seed[0]
+        self.ySeed = seed[1]
+        self.seedInputActive = False
+        self.SAVE_IMAGE =False
         self.SHOW_IMAGE = True
         
-        self.setColour = [0xFA,0xE8,0xD7]
+        self.default_colour = [0x80,0x80,0x80]
+        self.setColour = [0xD0,0xFF,0xFF]
         #gold=FFD700, AntiqueWhite=FAEBD7
-        self.GONE = (0x03,0x03,0x03) #Headed off to infinity?              
-        self.contourColours = myColour.get_palette("RAINBOW")
-        self.showContours = False
+        self.inf_colour = [0x03,0x03,0x03] #Headed off to infinity?              
+        self.contourColours = myColour.get_palette("TEST")
+        self.contourInputActive = False
 
-        self.maxIter = 192 
+        self.maxIter = 100
         self.ABSURD_ITER = 10000
-        self.xStart = 0.748207
-        self.xEnd = 0.748555
-        self.yStart = 0.068471
+        #The initial figures give the same scale for x and y?
+        self.xStart = -1
+        self.xEnd = 2
+        self.yStart = -1.125
         self.xSize = 720
         self.IMAGE_RATIO = 3/4
         self.yEnd = self.yStart + \
@@ -50,16 +57,19 @@ class MandelbrotGUI:
 
         self.MESSAGES = ["Ready",
                          "Please enter iterations: ",
-                        "Please enter ranges",
-                        "Look out kid, it's something you did",
-                        "Please enter nr. of contours",
-                        "Please enter hex value for colour"]
+                         "Please enter ranges",
+                         "Look out kid, it's something you did",
+                         "Please enter nr. of contours",
+                         "Please enter hex value for colour",
+                         "Please enter seed value"]
 
         self.LABELS =  ["Iterations: ",
                         "Range x: ",
                         "Range y: ",
                         "I don't know when but you're doing it again",
-                        "Contours"]
+                        "Contours",
+                        "Seed x",
+                        "Seed y"]
 
         self.frame = Frame(master)
         self.frame.grid()
@@ -133,7 +143,7 @@ class MandelbrotGUI:
 
         self.currentColumn += 1
         self.runButton = Button(self.frame, text="Go", \
-                                 width=6, command=self.iter_complex)
+                                 width=6, command=self.iteration)
         self.runButton.grid(row=self.currentRow, column=self.currentColumn)
 
     def auto_y(self):
@@ -153,8 +163,9 @@ class MandelbrotGUI:
     def more_input(self):
         # The assumption is that the user now wants contours to be shown.
         # Adjustments to how they are displayed are made possible below.
+        # Further, there is a facility to set the seed value for z
         self.moreButton["state"] = "disable"
-        self.showContours = True
+        self.contourInputActive = True
         self.currentRow += 1
 
         self.currentColumn = 0
@@ -228,6 +239,37 @@ class MandelbrotGUI:
         self.cont2Entry.grid(row=self.currentRow, column=self.currentColumn,
                               sticky=W)
                 
+        #New row adds entries for seed value
+        self.seedInputActive = True
+        self.currentRow += 1
+        self.currentColumn = 0
+        self.xSeedLabelText = StringVar()
+        self.xSeedLabelText.set(self.LABELS[5])
+        self.xSeedLabel = Label(self.frame, textvariable=self.xSeedLabelText)
+        self.xSeedLabel.grid(row=self.currentRow, column=self.currentColumn)
+
+        self.currentColumn += 1
+        self.xSeedText = StringVar()
+        self.xSeedEntry = Entry(self.frame, textvariable=self.xSeedText, 
+                                width=4)
+        self.xSeedEntry.insert(0, str(self.xSeed))
+        self.xSeedEntry.grid(row=self.currentRow, column=self.currentColumn)
+
+        self.currentColumn += 1
+        self.ySeedLabelText = StringVar()
+        self.ySeedLabelText.set(self.LABELS[6])
+        self.ySeedLabel = Label(self.frame, textvariable=self.ySeedLabelText)
+        self.ySeedLabel.grid(row=self.currentRow, column=self.currentColumn,
+                             sticky=E)
+
+        self.currentColumn += 1
+        self.ySeedText = StringVar()
+        self.ySeedEntry = Entry(self.frame, textvariable=self.ySeedText, 
+                                width=4)
+        self.ySeedEntry.insert(0, str(self.ySeed))
+        self.ySeedEntry.grid(row=self.currentRow, column=self.currentColumn)
+
+
     def change_set_col(self):
         newColour = self.setColText.get()
         print("New set colour:", newColour)
@@ -283,9 +325,10 @@ class MandelbrotGUI:
             print("Couldn't save file")
     
 
-    def iter_complex(self):        
+    def iteration(self):        
 
         while True:
+            #read input values
             try:
                 self.maxIter = int(self.maxIterText.get())
                 if self.maxIter <= 1 or self.maxIter > self.ABSURD_ITER:
@@ -303,35 +346,94 @@ class MandelbrotGUI:
                 self.messageText.set(self.MESSAGES[2])
                 return
             try:
-                if self.showContours == True:
-                    contourStart = self.maxIter - \
+                if self.contourInputActive == True:
+                    self.contourStart = self.maxIter - \
                                      int(self.contourText.get()) - 1
-                    print("Start after contour:", contourStart)
+                    print("Start after contour:", self.contourStart)
             except ValueError:
                 self.messageText.set(self.MESSAGES[4])
+                return
+            try:
+                if self.seedInputActive == True:
+                    self.xSeed = float(self.xSeedText.get())
+                    self.ySeed = float(self.ySeedText.get())
+                print("Seed: ", self.xSeed, self.ySeed)
+            except ValueError:
+                self.messageText.set(self.MESSAGES[6])
                 return
             break
 
         self.runButton["state"] = "disable"
         startTime = datetime.now()
-        print("Iterating...", self.maxIter)
+        print(startTime, "- Iterating...", self.maxIter)
         print("x start", self.xStart, ": x end", self.xEnd)
         print("y start", self.yStart, ": y end", self.yEnd)
+
+        #make start less than end
         if self.xEnd < self.xStart:
             self.xStart, self.xEnd = self.xEnd, self.xStart
         if self.yEnd < self.yStart:
             self.yStart, self.yEnd = self.yEnd, self.yStart
+        #determine increase per pixel
         self.xIncr = (self.xEnd - self.xStart)/self.xSize
         self.yIncr = (self.yEnd - self.yStart)/self.ySize
 
-        iArray = np.ones((self.ySize, self.xSize, 3), dtype=np.uint8)
+        self.iArray = np.ones((self.ySize, self.xSize, 3), dtype=np.uint8)
+
+        self.calculate()
+
+        im = Image.fromarray(self.iArray)
+        if self.SHOW_IMAGE:
+            im.show()
+        if self.SAVE_IMAGE:
+            self.save_image(im)
+
+        print("Runtime =", datetime.now() - startTime)
+        self.runButton["state"] = "active"
+        self.messageText.set(self.MESSAGES[0])
+
+    def calculate(self):
+        #dummy calculation
+        for xPixel in range(self.xSize):
+            for yPixel in range(self.ySize):
+                #initialise pixel
+                colour = self.default_colour
+                # - do something - 
+                for i in range(self.maxIter):
+                    #compute:
+                    #  determine what colour the pixel should have
+                    break
+                #end_for_i
+                self.iArray[(self.ySize -1 -yPixel), xPixel] = colour
+            #end_for_y    
+        #end_for_x
+        return
+    
+    def contour(self, i):
+        index = i % len(self.contourColours)
+        return self.contourColours[index]
+
+
+""" 
+Date 21 Nov 22
+Mandelbrot iteration
+@author: Owner
+"""
+class Mandelbrot(GenIteration):
+    
+    title = "Mandelbrot Delay:  z0 = 0;  z := z**2 - c;  c = (x, iy)"
+    #It is possible to change the initial "seed" value of z0 
+    #via the generic GUI
+    
+    def calculate(self):
         cReal = self.xStart
         for xPixel in range(self.xSize):
             cImag = self.yStart
             for yPixel in range(self.ySize):
-                x = 0
-                y = 0
-                xSq, ySq, dSq = 0, 0, 0
+                x = self.xSeed
+                y = self.ySeed
+                xSq, ySq, = x*x, y*y
+                dSq = xSq + ySq
                 colour = self.setColour
                 for i in range(self.maxIter):
                     try:
@@ -345,13 +447,13 @@ class MandelbrotGUI:
                         #test
                         tooLarge = dSq > self.LIMIT
                         if tooLarge:
-                            if self.showContours == True:
-                                if i > contourStart:
+                            if self.contourInputActive == True:
+                                if i > self.contourStart:
                                     colour = self.contour(i)
                                 else:
-                                    colour = self.GONE
+                                    colour = self.inf_colour
                             else:
-                                colour = self.GONE
+                                colour = self.inf_colour
                             break
                         else:
                             continue
@@ -360,27 +462,13 @@ class MandelbrotGUI:
                          self.overflow = True
                          break
                 #end_for_i
-                iArray[(self.ySize -1 -yPixel), xPixel] = colour
+                self.iArray[(self.ySize -1 -yPixel), xPixel] = colour
                 cImag += self.yIncr
             #end_for_y    
             cReal += self.xIncr
         #end_for_x
-
-        im = Image.fromarray(iArray)
-        if self.SHOW_IMAGE:
-            im.show()
-        if self.SAVE_IMAGE:
-            self.save_image(im)
-
-        print("Runtime =", datetime.now() - startTime)
-        self.runButton["state"] = "active"
-        self.messageText.set(self.MESSAGES[0])
-
-    def contour(self, i):
-        index = i % len(self.contourColours)
-        return self.contourColours[index]
-
-
+        
+#MAIN
 root = Tk()
-my_gui = MandelbrotGUI(root)
+myGUI = Mandelbrot(root)
 root.mainloop()

@@ -8,14 +8,14 @@ Rev 1.3: 20 Nov 22 The palette-loading mechanicm is now in module "myColour"
 @author: Owner
 
 The program creates an image of the basins of attraction for the cube 
-roots of one,using Newton's method. 
+roots of one, using Newton's method. 
 The image is shown to screen and saved with name tempnimage.png 
 in the current directory.
 """
 from numpy import ones, uint8
 from PIL import Image
 from scipy import nextafter
-import myColour
+from myColour import get_palette
 
 def belongs_to_root(x, y, limit):
     #given (x,y), is the point close to one of the cube roots of one?
@@ -57,7 +57,7 @@ def iteration(x, y, maxIter):
     return rootFound
 
 #MAIN
-palette = myColour.get_palette("PALETTE5", 5)
+palette = get_palette("PALETTE5", 5)
 MAX_ITER = 16
 aspect = 3/4
 xStart = -1.4
