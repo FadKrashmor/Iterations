@@ -1,7 +1,8 @@
-""" Date 21 Nov 22
+""" Date 22 Nov 22
 Generic GUI to set up creation of image from Julia style iterations. Taken 
 from earlier program mbrot_np, rev. 2.5.
-Rev 1.0 Features:
+Rev 1.0 - 21 Nov 22
+    Features:
     * Facility to match x and y scales.
     * Allows specific number of contours to be shown (via "More" button).
     * It includes the facility to alter "set colour", "infinity colour" and 
@@ -9,8 +10,9 @@ Rev 1.0 Features:
       is pre-selected).
     * Allows for an (contextual) "seed value"" to be set.
     * Reports runtime, and other info to console.
+    * Can display result of iteration to screen and write to file (.png) 
 Rev 1.1 - 22 Nov 22
-    * Initialisation moved to keyword arguments
+    * Initialisation effected by keyword arguments
 @author: Owner
 """
 from sys import path
@@ -27,50 +29,40 @@ from PIL import Image
 class GenIteration():
     title = "Generic"
     
-    def __init__(self, master, \
-                 seed=[0, 0],
-                 setColour=[0xD0,0xFF,0xFF],
-                 infColour=[0x03,0x03,0x03],
-                 palette = "3TEST",
-                 maxIter = 100,
-                 xStart = -2,
-                 xEnd = 2,
-                 yStart = -1.5,
-                 imageRatio = 0.75,
-                 xSize = 720,
-                 saveImage = False,
-                 showImage = True):
+    def __init__(self, master, **kwargs):
+        self.seed = kwargs.setdefault("seed", [0, 0])
+        self.setColour = kwargs.setdefault("setColour", [0xD0,0xFF,0xFF])
+        self.infColour = kwargs.setdefault("infColour", [0x03,0x03,0x03])
+        self.palette = kwargs.setdefault("palette", "3TEST")
+        self.maxIter = kwargs.setdefault("maxIter", 100)
+        self.xStart = kwargs.setdefault("xStart", -2)
+        self.xEnd = kwargs.setdefault("xEnd", 2)
+        self.yStart = kwargs.setdefault("yStart", -1.5)
+        self.imageRatio = kwargs.setdefault("imageRatio", 0.75)
+        self.xSize = kwargs.setdefault("xSize", 720)
+        self.saveImage = kwargs.setdefault("saveImage", False)
+        self.showImage = kwargs.setdefault("showImage", True)
         
-        self.master = master
-        master.title(self.title)
-
-        self.xSeed = seed[0]
-        self.ySeed = seed[1]
+        self.yEnd = self.yStart + \
+                     (self.xEnd - self.xStart) * self.imageRatio
+        self.ySize = int(self.xSize * self.imageRatio)
+        print("Size =", self.xSize, "x", self.ySize)
+        
+        self.xSeed = self.seed[0]
+        self.ySeed = self.seed[1]
         self.seedInputActive = False
         
         self.defaultColour = [0x80,0x80,0x80]
         #gold=FFD700, AntiqueWhite=FAEBD7
-        self.setColour = setColour
-        self.infColour = infColour #Headed off to infinity?              
-        self.contourColours = myColour.get_palette(palette)
+        self.contourColours = myColour.get_palette(self.palette)
         self.contourInputActive = False
 
-        self.maxIter = maxIter
         self.ABSURD_ITER = 10000
-        #The initial figures give the same scale for x and y?
-        self.xStart = xStart
-        self.xEnd = xEnd
-        self.yStart = yStart
-        self.imageRatio = imageRatio
-        self.yEnd = self.yStart + \
-                     (self.xEnd - self.xStart) * self.imageRatio
-        self.xSize = xSize
-        self.ySize = int(self.xSize * self.imageRatio)
-        print("Size =", self.xSize, "x", self.ySize)
         self.LIMIT = 49
 
-        self.saveImage = saveImage
-        self.showImage = showImage
+
+        self.master = master
+        master.title(self.title)
 
         self.MESSAGES = ["Ready",
                          "Please enter iterations: ",
@@ -459,71 +451,6 @@ class GenIteration():
         return self.contourColours[index]
 
 
-class Mandelbrot(GenIteration):
-    """ 
-    Date 21 Nov 22
-    Mandelbrot iteration
-    @author: Owner
-    """    
-    title = "Mandelbrot Delay:  z0 = 0;  z := z**2 - c;  c = (x, iy)"
-    #It is possible to change the initial "seed" value of z0 
-    #via the generic GUI
-    
-    def __init__(self, master,\
-                 seed=[0, 0],
-                 xStart=-1,
-                 xEnd=2,
-                 yStart=-1.125):
-        self.seed = seed
-        self.xStart = xStart
-        self.xEnd = xEnd
-        self.yStart = yStart
-        
-        GenIteration.__init__(self, master, \
-                              seed=self.seed, 
-                              xStart=self.xStart,
-                              xEnd=self.xEnd, 
-                              yStart=self.yStart)
-        
-    def calculate(self):
-        cReal = self.xStart
-        for xPixel in range(self.xSize):
-            cImag = self.yStart
-            for yPixel in range(self.ySize):
-                x = self.xSeed
-                y = self.ySeed
-                xSq, ySq, = x*x, y*y
-                dSq = xSq + ySq
-                colour = self.setColour
-                for i in range(self.maxIter):
-                    #Compute
-                    y = x*y
-                    y = y + y - cImag
-                    x = xSq - ySq - cReal
-                    xSq = x*x
-                    ySq = y*y
-                    dSq = xSq + ySq
-                    #Test
-                    tooLarge = dSq > self.LIMIT
-                    if tooLarge:
-                        if self.contourInputActive == True:
-                            if i > self.contourStart:
-                                colour = self.contour(i)
-                            else:
-                                colour = self.infColour
-                        else:
-                            colour = self.infColour
-                        break
-                    else:
-                            continue
-                #end_for_i
-                self.iArray[(self.ySize -1 -yPixel), xPixel] = colour
-                cImag += self.yIncr
-            #end_for_y    
-            cReal += self.xIncr
-        #end_for_x
-        
-
 class Julia(GenIteration):
     """ 
     Date 21 Nov 22
@@ -578,11 +505,69 @@ class Julia(GenIteration):
             xCurrent += self.xIncr
         #end_for_x
     
+class Mandelbrot(GenIteration):
+    """ 
+    Date 21 Nov 22
+    Mandelbrot iteration
+    @author: Owner
+    """    
+    title = "Mandelbrot Delay:  z0 = 0;  z := z**2 - c;  c = (x, iy)"
+    #It is possible to change the initial "seed" value of z0 
+    #via the generic GUI
+    
+    def __init__(self, master, **kwargs):
+        kwargs.setdefault("seed", [0, 0])
+        kwargs.setdefault("xStart", -1)
+        kwargs.setdefault("xEnd", 2)
+        kwargs.setdefault("yStart", -1.125)
+        kwargs.setdefault("imageRatio", 0.75)
+        
+        GenIteration.__init__(self, master, **kwargs)
+        
+    def calculate(self):
+        cReal = self.xStart
+        for xPixel in range(self.xSize):
+            cImag = self.yStart
+            for yPixel in range(self.ySize):
+                x = self.xSeed
+                y = self.ySeed
+                xSq, ySq, = x*x, y*y
+                dSq = xSq + ySq
+                colour = self.setColour
+                for i in range(self.maxIter):
+                    #Compute
+                    y = x*y
+                    y = y + y - cImag
+                    x = xSq - ySq - cReal
+                    xSq = x*x
+                    ySq = y*y
+                    dSq = xSq + ySq
+                    #Test
+                    tooLarge = dSq > self.LIMIT
+                    if tooLarge:
+                        if self.contourInputActive == True:
+                            if i > self.contourStart:
+                                colour = self.contour(i)
+                            else:
+                                colour = self.infColour
+                        else:
+                            colour = self.infColour
+                        break
+                    else:
+                            continue
+                #end_for_i
+                self.iArray[(self.ySize -1 -yPixel), xPixel] = colour
+                cImag += self.yIncr
+            #end_for_y    
+            cReal += self.xIncr
+        #end_for_x
+        
+
 #MAIN
 current = "M"
 root = Tk()
 if current == "J":
-    myGUI = Julia(root, seed=[0.745405, 0.113006])
+    myGUI = Julia(root, seed=[0.745405, 0.113006], palette="3CAL2_0")
 if current == "M":
     myGUI = Mandelbrot(root, xStart=-1, xEnd=2, yStart=-1.125)
 root.mainloop()
