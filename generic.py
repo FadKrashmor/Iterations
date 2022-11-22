@@ -3,11 +3,14 @@ Generic GUI to set up creation of image from Julia style iterations. Taken
 from earlier program mbrot_np, rev. 2.5.
 Rev 1.0 Features:
     * Facility to match x and y scales.
-    * Allows specific number of contours to be shown.
-    * (Having chosen a colour palettte from module myColour) it includes the
-      facility to alter "set colour" and first three contour colours.
-    * Allows for an (undefined) "seed value"" to be set.
+    * Allows specific number of contours to be shown (via "More" button).
+    * It includes the facility to alter "set colour", "infinity colour" and 
+      the first three contour colours (a colour palette from module myColour 
+      is pre-selected).
+    * Allows for an (contextual) "seed value"" to be set.
     * Reports runtime, and other info to console.
+Rev 1.1 - 22 Nov 22
+    * Initialisation moved to keyword arguments
 @author: Owner
 """
 from sys import path
@@ -24,36 +27,50 @@ from PIL import Image
 class GenIteration():
     title = "Generic"
     
-    def __init__(self, master, seed=[0, 0]):
+    def __init__(self, master, \
+                 seed=[0, 0],
+                 setColour=[0xD0,0xFF,0xFF],
+                 infColour=[0x03,0x03,0x03],
+                 palette = "3TEST",
+                 maxIter = 100,
+                 xStart = -2,
+                 xEnd = 2,
+                 yStart = -1.5,
+                 imageRatio = 0.75,
+                 xSize = 720,
+                 saveImage = False,
+                 showImage = True):
+        
         self.master = master
         master.title(self.title)
 
         self.xSeed = seed[0]
         self.ySeed = seed[1]
         self.seedInputActive = False
-        self.SAVE_IMAGE =False
-        self.SHOW_IMAGE = True
         
-        self.default_colour = [0x80,0x80,0x80]
-        self.setColour = [0xD0,0xFF,0xFF]
+        self.defaultColour = [0x80,0x80,0x80]
         #gold=FFD700, AntiqueWhite=FAEBD7
-        self.inf_colour = [0x03,0x03,0x03] #Headed off to infinity?              
-        self.contourColours = myColour.get_palette("TEST")
+        self.setColour = setColour
+        self.infColour = infColour #Headed off to infinity?              
+        self.contourColours = myColour.get_palette(palette)
         self.contourInputActive = False
 
-        self.maxIter = 100
+        self.maxIter = maxIter
         self.ABSURD_ITER = 10000
         #The initial figures give the same scale for x and y?
-        self.xStart = -1
-        self.xEnd = 2
-        self.yStart = -1.125
-        self.xSize = 720
-        self.IMAGE_RATIO = 3/4
+        self.xStart = xStart
+        self.xEnd = xEnd
+        self.yStart = yStart
+        self.imageRatio = imageRatio
         self.yEnd = self.yStart + \
-                     (self.xEnd - self.xStart) * self.IMAGE_RATIO
-        self.ySize = int(self.xSize * self.IMAGE_RATIO)
+                     (self.xEnd - self.xStart) * self.imageRatio
+        self.xSize = xSize
+        self.ySize = int(self.xSize * self.imageRatio)
         print("Size =", self.xSize, "x", self.ySize)
         self.LIMIT = 49
+
+        self.saveImage = saveImage
+        self.showImage = showImage
 
         self.MESSAGES = ["Ready",
                          "Please enter iterations: ",
@@ -93,7 +110,8 @@ class GenIteration():
         self.maxIterText = StringVar()
         self.iEntry = Entry(self.frame, textvariable=self.maxIterText, width=4)
         self.iEntry.insert(0, str(self.maxIter))
-        self.iEntry.grid(row=self.currentRow, column=self.currentColumn)
+        self.iEntry.grid(row=self.currentRow, column=self.currentColumn, 
+                         sticky=W)
 
         self.currentColumn += 1
         self.xLabelText = StringVar()
@@ -142,6 +160,7 @@ class GenIteration():
         self.moreButton.grid(row=self.currentRow, column=self.currentColumn)
 
         self.currentColumn += 1
+        self.currentColumn += 1
         self.runButton = Button(self.frame, text="Go", \
                                  width=6, command=self.iteration)
         self.runButton.grid(row=self.currentRow, column=self.currentColumn)
@@ -153,7 +172,7 @@ class GenIteration():
             self.xEnd = float(self.xEndText.get())
             self.yStart = float(self.yStartText.get())
             self.yEnd = self.yStart + \
-                         (self.xEnd - self.xStart) * self.IMAGE_RATIO
+                         (self.xEnd - self.xStart) * self.imageRatio
             self.yEntry2.delete(0,"end")
             self.yEntry2.insert(0, str(self.yEnd))
         except ValueError:
@@ -161,9 +180,9 @@ class GenIteration():
 
         
     def more_input(self):
-        # The assumption is that the user now wants contours to be shown.
-        # Adjustments to how they are displayed are made possible below.
-        # Further, there is a facility to set the seed value for z
+        #The assumption is that the user now wants contours to be shown.
+        #Adjustments to how they are displayed are made possible below.
+        #Further, there is a facility to set the seed value for z.
         self.moreButton["state"] = "disable"
         self.contourInputActive = True
         self.currentRow += 1
@@ -181,7 +200,7 @@ class GenIteration():
                                 width=4)
         self.contEntry.insert(0, str(self.maxIter))
         self.contEntry.grid(row=self.currentRow, column=self.currentColumn,
-                             sticky=E)
+                            sticky=W)
 
         self.currentColumn += 1
         self.setColText = StringVar()
@@ -189,27 +208,41 @@ class GenIteration():
         self.setButton = Button(self.frame, text="SET",\
                                  bg="#"+self.setColText.get(), width=4,
                                  command=self.change_set_col)
-        self.setButton.grid(row=self.currentRow, column=self.currentColumn)
+        self.setButton.grid(row=self.currentRow, column=self.currentColumn,
+                            sticky=E)
 
         self.currentColumn += 1
         self.setEntry = Entry(self.frame, textvariable=self.setColText, 
-                               width=7)
-        self.setEntry.grid(row=self.currentRow, column=self.currentColumn,
-                            sticky=W)
+                               width=6)
+        self.setEntry.grid(row=self.currentRow, column=self.currentColumn)
                 
+        self.currentColumn += 1
+        self.infColText = StringVar()
+        self.infColText.set(myColour.rgb_hexstring(self.infColour))
+        self.infButton = Button(self.frame, text="INF",\
+                                 bg="#"+self.infColText.get(), width=4,
+                                 command=self.change_inf_col)
+        self.infButton.grid(row=self.currentRow, column=self.currentColumn,
+                            sticky=E)
+
+        self.currentColumn += 1
+        self.infEntry = Entry(self.frame, textvariable=self.infColText, 
+                               width=6)
+        self.infEntry.grid(row=self.currentRow, column=self.currentColumn)
+
         self.currentColumn += 1
         self.cont0Text = StringVar()
         self.cont0Text.set(myColour.rgb_hexstring(self.contourColours[0]))
         self.cont0Button = Button(self.frame, text="C0",\
                                  bg="#"+self.cont0Text.get(), width=4,
                                  command=self.change_c0_col)
-        self.cont0Button.grid(row=self.currentRow, column=self.currentColumn)
+        self.cont0Button.grid(row=self.currentRow, column=self.currentColumn,
+                              sticky=E)
 
         self.currentColumn += 1
         self.cont0Entry = Entry(self.frame, textvariable=self.cont0Text, 
-                                width=7)
-        self.cont0Entry.grid(row=self.currentRow, column=self.currentColumn,
-                              sticky=W)
+                                width=6)
+        self.cont0Entry.grid(row=self.currentRow, column=self.currentColumn)
                 
         self.currentColumn += 1
         self.cont1Text = StringVar()
@@ -217,13 +250,13 @@ class GenIteration():
         self.cont1Button = Button(self.frame, text="C1",\
                                  bg="#"+self.cont1Text.get(), width=4,
                                  command=self.change_c1_col)
-        self.cont1Button.grid(row=self.currentRow, column=self.currentColumn)
+        self.cont1Button.grid(row=self.currentRow, column=self.currentColumn,
+                              sticky=E)
 
         self.currentColumn += 1
         self.cont1Entry = Entry(self.frame, textvariable=self.cont1Text, 
-                                width=7)
-        self.cont1Entry.grid(row=self.currentRow, column=self.currentColumn,
-                              sticky=W)
+                                width=6)
+        self.cont1Entry.grid(row=self.currentRow, column=self.currentColumn)
                 
         self.currentColumn += 1
         self.cont2Text = StringVar()
@@ -231,13 +264,13 @@ class GenIteration():
         self.cont2Button = Button(self.frame, text="C2",\
                                  bg="#"+self.cont2Text.get(), width=4,
                                  command=self.change_c2_col)
-        self.cont2Button.grid(row=self.currentRow, column=self.currentColumn)
+        self.cont2Button.grid(row=self.currentRow, column=self.currentColumn,
+                              sticky=E)
 
         self.currentColumn += 1
         self.cont2Entry = Entry(self.frame, textvariable=self.cont2Text, 
-                                width=7)
-        self.cont2Entry.grid(row=self.currentRow, column=self.currentColumn,
-                              sticky=W)
+                                width=6)
+        self.cont2Entry.grid(row=self.currentRow, column=self.currentColumn)
                 
         #New row adds entries for seed value
         self.seedInputActive = True
@@ -251,7 +284,7 @@ class GenIteration():
         self.currentColumn += 1
         self.xSeedText = StringVar()
         self.xSeedEntry = Entry(self.frame, textvariable=self.xSeedText, 
-                                width=4)
+                                width=9)
         self.xSeedEntry.insert(0, str(self.xSeed))
         self.xSeedEntry.grid(row=self.currentRow, column=self.currentColumn)
 
@@ -265,7 +298,7 @@ class GenIteration():
         self.currentColumn += 1
         self.ySeedText = StringVar()
         self.ySeedEntry = Entry(self.frame, textvariable=self.ySeedText, 
-                                width=4)
+                                width=9)
         self.ySeedEntry.insert(0, str(self.ySeed))
         self.ySeedEntry.grid(row=self.currentRow, column=self.currentColumn)
 
@@ -277,6 +310,18 @@ class GenIteration():
             try:
                 myColour.change_colour(newColour, self.setColour)
                 self.setButton.config(bg="#"+newColour)
+            except ValueError:
+                self.messageText.set(self.MESSAGES[5])
+        else:
+            self.messageText.set(self.MESSAGES[5])
+
+    def change_inf_col(self):
+        newColour = self.infColText.get()
+        print("New inf colour:", newColour)
+        if len(newColour) == 6:
+            try:
+                myColour.change_colour(newColour, self.infColour)
+                self.infButton.config(bg="#"+newColour)
             except ValueError:
                 self.messageText.set(self.MESSAGES[5])
         else:
@@ -320,7 +365,7 @@ class GenIteration():
 
     def save_image(self, image):
         try:
-            image.save("tempmimage.png", format="PNG")
+            image.save("tempgimage.png", format="PNG")
         except:
             print("Couldn't save file")
     
@@ -328,7 +373,7 @@ class GenIteration():
     def iteration(self):        
 
         while True:
-            #read input values
+            #Read input values
             try:
                 self.maxIter = int(self.maxIterText.get())
                 if self.maxIter <= 1 or self.maxIter > self.ABSURD_ITER:
@@ -365,16 +410,16 @@ class GenIteration():
 
         self.runButton["state"] = "disable"
         startTime = datetime.now()
-        print(startTime, "- Iterating...", self.maxIter)
+        print(startTime.time(), "- Iterating...", self.maxIter)
         print("x start", self.xStart, ": x end", self.xEnd)
         print("y start", self.yStart, ": y end", self.yEnd)
 
-        #make start less than end
+        #Make start less than end
         if self.xEnd < self.xStart:
             self.xStart, self.xEnd = self.xEnd, self.xStart
         if self.yEnd < self.yStart:
             self.yStart, self.yEnd = self.yEnd, self.yStart
-        #determine increase per pixel
+        #Determine increase per pixel
         self.xIncr = (self.xEnd - self.xStart)/self.xSize
         self.yIncr = (self.yEnd - self.yStart)/self.ySize
 
@@ -383,9 +428,9 @@ class GenIteration():
         self.calculate()
 
         im = Image.fromarray(self.iArray)
-        if self.SHOW_IMAGE:
+        if self.showImage:
             im.show()
-        if self.SAVE_IMAGE:
+        if self.saveImage:
             self.save_image(im)
 
         print("Runtime =", datetime.now() - startTime)
@@ -393,14 +438,14 @@ class GenIteration():
         self.messageText.set(self.MESSAGES[0])
 
     def calculate(self):
-        #dummy calculation
+        #Dummy calculation
         for xPixel in range(self.xSize):
             for yPixel in range(self.ySize):
-                #initialise pixel
-                colour = self.default_colour
+                #Initialise pixel
+                colour = self.defaultColour
                 # - do something - 
                 for i in range(self.maxIter):
-                    #compute:
+                    #Compute:
                     #  determine what colour the pixel should have
                     break
                 #end_for_i
@@ -414,17 +459,32 @@ class GenIteration():
         return self.contourColours[index]
 
 
-""" 
-Date 21 Nov 22
-Mandelbrot iteration
-@author: Owner
-"""
 class Mandelbrot(GenIteration):
-    
+    """ 
+    Date 21 Nov 22
+    Mandelbrot iteration
+    @author: Owner
+    """    
     title = "Mandelbrot Delay:  z0 = 0;  z := z**2 - c;  c = (x, iy)"
     #It is possible to change the initial "seed" value of z0 
     #via the generic GUI
     
+    def __init__(self, master,\
+                 seed=[0, 0],
+                 xStart=-1,
+                 xEnd=2,
+                 yStart=-1.125):
+        self.seed = seed
+        self.xStart = xStart
+        self.xEnd = xEnd
+        self.yStart = yStart
+        
+        GenIteration.__init__(self, master, \
+                              seed=self.seed, 
+                              xStart=self.xStart,
+                              xEnd=self.xEnd, 
+                              yStart=self.yStart)
+        
     def calculate(self):
         cReal = self.xStart
         for xPixel in range(self.xSize):
@@ -436,31 +496,26 @@ class Mandelbrot(GenIteration):
                 dSq = xSq + ySq
                 colour = self.setColour
                 for i in range(self.maxIter):
-                    try:
-                        #compute
-                        y = x*y
-                        y = y + y - cImag
-                        x = xSq - ySq - cReal
-                        xSq = x*x
-                        ySq = y*y
-                        dSq = xSq + ySq
-                        #test
-                        tooLarge = dSq > self.LIMIT
-                        if tooLarge:
-                            if self.contourInputActive == True:
-                                if i > self.contourStart:
-                                    colour = self.contour(i)
-                                else:
-                                    colour = self.inf_colour
+                    #Compute
+                    y = x*y
+                    y = y + y - cImag
+                    x = xSq - ySq - cReal
+                    xSq = x*x
+                    ySq = y*y
+                    dSq = xSq + ySq
+                    #Test
+                    tooLarge = dSq > self.LIMIT
+                    if tooLarge:
+                        if self.contourInputActive == True:
+                            if i > self.contourStart:
+                                colour = self.contour(i)
                             else:
-                                colour = self.inf_colour
-                            break
+                                colour = self.infColour
                         else:
+                            colour = self.infColour
+                        break
+                    else:
                             continue
-                    except OverflowError:
-                         print("Overflow: i=", i, "x=", x, "y=", y)
-                         self.overflow = True
-                         break
                 #end_for_i
                 self.iArray[(self.ySize -1 -yPixel), xPixel] = colour
                 cImag += self.yIncr
@@ -468,7 +523,66 @@ class Mandelbrot(GenIteration):
             cReal += self.xIncr
         #end_for_x
         
+
+class Julia(GenIteration):
+    """ 
+    Date 21 Nov 22
+    Julia iteration
+    @author: Owner
+    
+    Interesting c values:
+        0.7454054, 0.1130063
+        0.745428, 0.113009
+    """
+    title = "Julia:  z0 = x, iy;  z := z**2 - c;  c fixed"
+    #It is possible to change the initial "seed" value of c
+    #via the generic GUI
+    
+    def calculate(self):
+        xCurrent = self.xStart
+        for xPixel in range(self.xSize):
+            yCurrent = self.yStart
+            for yPixel in range(self.ySize):
+                x = xCurrent
+                y = yCurrent
+                xSq = x*x
+                ySq = y*y
+                dSq = xSq + ySq
+                for i in range(self.maxIter):
+                    #Compute
+                    y = x*y
+                    y = y + y - self.ySeed
+                    x = xSq - ySq - self.xSeed
+                    xSq = x*x
+                    ySq = y*y
+                    dSq = xSq + ySq
+                    #Tst
+                    tooLarge = dSq > self.LIMIT
+                    if tooLarge:
+                        if self.contourInputActive == True:
+                            if i > self.contourStart:
+                                colour = self.contour(i)
+                            else:
+                                colour = self.infColour
+                        else:
+                            colour = self.infColour
+                        break
+                    else:
+                        continue
+                #end_for_i
+                if not tooLarge:
+                    colour = self.setColour
+                self.iArray[(self.ySize -1 -yPixel), xPixel] = colour
+                yCurrent += self.yIncr
+            #end_for_y    
+            xCurrent += self.xIncr
+        #end_for_x
+    
 #MAIN
+current = "M"
 root = Tk()
-myGUI = Mandelbrot(root)
+if current == "J":
+    myGUI = Julia(root, seed=[0.745405, 0.113006])
+if current == "M":
+    myGUI = Mandelbrot(root, xStart=-1, xEnd=2, yStart=-1.125)
 root.mainloop()

@@ -57,7 +57,7 @@ def iteration(x, y, maxIter):
     return rootFound
 
 #MAIN
-palette = get_palette("PALETTE5", 5)
+palette = get_palette("5PALETTE", 5)
 MAX_ITER = 16
 aspect = 3/4
 xStart = -1.4

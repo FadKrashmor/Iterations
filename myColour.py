@@ -1,23 +1,23 @@
 # R1.1 18 Nov 22
 # Contains useful stuff for working with colours
 #
-paletteDict = {"TEST" :     [[0x00, 0x80, 0xF0], 
-                             [0x00, 0x40, 0xB0],
-                             [0x00, 0x00, 0x70]],
-               "DEFAULT" :  [[0xA0, 0x10, 0x10], 
-                             [0x10, 0xA0, 0x10],
-                             [0x10, 0x10, 0xA0]],
-               "PALETTE5" : [[0xA0, 0xFF, 0xFF], #Blues
-                             [0x00, 0x00, 0x40],
-                             [0x10, 0x00, 0xE0],
-                             [0x40, 0x80, 0xFF],
-                             [0x03, 0x03, 0x03]],
-               "PORTUGAL" : [[0x00, 0x10, 0x80], #Colours of Portuguese flag
-                             [0x10, 0x80, 0x10],
-                             [0xf0, 0xd0, 0x00],
-                             [0xFF, 0x00, 0x00],
-                             [0xFC, 0xFC, 0xFC]],
-               "RAINBOW" :  [[0xB0,0x20,0x20],
+paletteDict = {"3TEST" :    [[0x00,0x80,0xF0], 
+                             [0x00,0x40,0xB0],
+                             [0x00,0x00,0x70]],
+               "3DEFAULT" : [[0xA0,0x10,0x10], 
+                             [0x10,0xA0,0x10],
+                             [0x10,0x10,0xA0]],
+               "5BLUES" :   [[0xA0,0xFF,0xFF], #Blues
+                             [0x00,0x00,0x40],
+                             [0x10,0x00,0xE0],
+                             [0x40,0x80,0xFF],
+                             [0x03,0x03,0x03]],
+               "5PORTUGAL" :[[0x00,0x10,0x80], #Colours of Portuguese flag
+                             [0x10,0x80,0x10],
+                             [0xf0,0xd0,0x00],
+                             [0xFF,0x00,0x00],
+                             [0xFC,0xFC,0xFC]],
+               "8RAINBOW" : [[0xB0,0x20,0x20],
                              [0xFF,0x80,0x20],
                              [0xFF,0xD7,0x00],
                              [0x40,0xB0,0x30],
@@ -49,9 +49,9 @@ def rgb_hexstring(rgb):
 
 def get_palette(name="", reqLength=3):
     # Returns a named palette from the dictionary.
-    # If not in dictionary, a default palette grey-scale palette is retuned,
-    # which has three tones, unless a required length is specified, in which 
-    # case a palette of that length is returned.
+    # If not in dictionary, a default grey-scale palette is retuned, which has
+    # three tones, unless a required length is specified, in which case a
+    # palette of that length is returned.
     if name in paletteDict:
         return paletteDict.get(name)
     else:
