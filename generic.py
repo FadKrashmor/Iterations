@@ -13,6 +13,8 @@ Rev 1.0 - 21 Nov 22
     * Can display result of iteration to screen and write to file (.png) 
 Rev 1.1 - 22 Nov 22
     * Initialisation effected by keyword arguments
+Rev 1.2 - 24 Nov 22
+    * Streamlining, function z2_minus_c() now generic.
 @author: Owner
 """
 from sys import path
@@ -154,7 +156,7 @@ class GenIteration():
         self.currentColumn += 1
         self.currentColumn += 1
         self.runButton = Button(self.frame, text="Go", \
-                                 width=6, command=self.iteration)
+                                 width=6, command=self.create_image)
         self.runButton.grid(row=self.currentRow, column=self.currentColumn)
 
     def auto_y(self):
@@ -355,15 +357,11 @@ class GenIteration():
         else:
             self.messageText.set(self.MESSAGES[5])
 
-    def save_image(self, image):
-        try:
-            image.save("tempgimage.png", format="PNG")
-        except:
-            print("Couldn't save file")
-    
+    def contour(self, i):
+        index = i % len(self.contourColours)
+        return self.contourColours[index]
 
-    def iteration(self):        
-
+    def create_image(self):        
         while True:
             #Read input values
             try:
@@ -417,7 +415,7 @@ class GenIteration():
 
         self.iArray = np.ones((self.ySize, self.xSize, 3), dtype=np.uint8)
 
-        self.calculate()
+        self.iterate()
 
         im = Image.fromarray(self.iArray)
         if self.showImage:
@@ -429,8 +427,8 @@ class GenIteration():
         self.runButton["state"] = "active"
         self.messageText.set(self.MESSAGES[0])
 
-    def calculate(self):
-        #Dummy calculation
+    def iterate(self):
+        #Dummy iteration
         for xPixel in range(self.xSize):
             for yPixel in range(self.ySize):
                 #Initialise pixel
@@ -446,11 +444,23 @@ class GenIteration():
         #end_for_x
         return
     
-    def contour(self, i):
-        index = i % len(self.contourColours)
-        return self.contourColours[index]
+    def save_image(self, image):
+        try:
+            image.save("tempgimage.png", format="PNG")
+        except:
+            print("Couldn't save file")
+                
+    #Formulas
+    def z2_minus_c(self, x, y, cr, ci):
+        #Compute z**2 - c
+        xSq = x*x
+        ySq = y*y
+        y = x*y
+        y = y + y - ci
+        x = xSq - ySq - cr
+        return x, y
 
-
+                   
 class Julia(GenIteration):
     """ 
     Date 21 Nov 22
@@ -465,27 +475,19 @@ class Julia(GenIteration):
     #It is possible to change the initial "seed" value of c
     #via the generic GUI
     
-    def calculate(self):
+    def iterate(self):
         xCurrent = self.xStart
         for xPixel in range(self.xSize):
             yCurrent = self.yStart
             for yPixel in range(self.ySize):
                 x = xCurrent
                 y = yCurrent
-                xSq = x*x
-                ySq = y*y
-                dSq = xSq + ySq
+                colour = self.setColour
                 for i in range(self.maxIter):
-                    #Compute
-                    y = x*y
-                    y = y + y - self.ySeed
-                    x = xSq - ySq - self.xSeed
-                    xSq = x*x
-                    ySq = y*y
-                    dSq = xSq + ySq
-                    #Tst
-                    tooLarge = dSq > self.LIMIT
-                    if tooLarge:
+                    #Compute next z value
+                    x, y = super().z2_minus_c(x, y, self.xSeed, self.ySeed)
+                    #Test
+                    if (x*x + y*y) > self.LIMIT:
                         if self.contourInputActive == True:
                             if i > self.contourStart:
                                 colour = self.contour(i)
@@ -497,21 +499,20 @@ class Julia(GenIteration):
                     else:
                         continue
                 #end_for_i
-                if not tooLarge:
-                    colour = self.setColour
                 self.iArray[(self.ySize -1 -yPixel), xPixel] = colour
                 yCurrent += self.yIncr
             #end_for_y    
             xCurrent += self.xIncr
         #end_for_x
     
+
 class Mandelbrot(GenIteration):
     """ 
     Date 21 Nov 22
     Mandelbrot iteration
     @author: Owner
     """    
-    title = "Mandelbrot Delay:  z0 = 0;  z := z**2 - c;  c = (x, iy)"
+    title = "Mandelbrot:  z0 = 0;  z := z**2 - c;  c = (x, iy)"
     #It is possible to change the initial "seed" value of z0 
     #via the generic GUI
     
@@ -522,29 +523,21 @@ class Mandelbrot(GenIteration):
         kwargs.setdefault("yStart", -1.125)
         kwargs.setdefault("imageRatio", 0.75)
         
-        GenIteration.__init__(self, master, **kwargs)
+        super().__init__(master, **kwargs)
         
-    def calculate(self):
+    def iterate(self):
         cReal = self.xStart
         for xPixel in range(self.xSize):
             cImag = self.yStart
             for yPixel in range(self.ySize):
                 x = self.xSeed
                 y = self.ySeed
-                xSq, ySq, = x*x, y*y
-                dSq = xSq + ySq
                 colour = self.setColour
                 for i in range(self.maxIter):
-                    #Compute
-                    y = x*y
-                    y = y + y - cImag
-                    x = xSq - ySq - cReal
-                    xSq = x*x
-                    ySq = y*y
-                    dSq = xSq + ySq
+                    #Compute next z value
+                    x, y = super().z2_minus_c(x, y, cReal, cImag)
                     #Test
-                    tooLarge = dSq > self.LIMIT
-                    if tooLarge:
+                    if (x*x + y*y) > self.LIMIT:
                         if self.contourInputActive == True:
                             if i > self.contourStart:
                                 colour = self.contour(i)
@@ -561,13 +554,13 @@ class Mandelbrot(GenIteration):
             #end_for_y    
             cReal += self.xIncr
         #end_for_x
-        
 
+        
 #MAIN
-current = "M"
+current = "j"
 root = Tk()
-if current == "J":
-    myGUI = Julia(root, seed=[0.745405, 0.113006], palette="3CAL2_0")
-if current == "M":
+if current == "j":
+    myGUI = Julia(root, seed=[0.745405, 0.113006], palette="3CAL_0")
+if current == "m":
     myGUI = Mandelbrot(root, xStart=-1, xEnd=2, yStart=-1.125)
 root.mainloop()
