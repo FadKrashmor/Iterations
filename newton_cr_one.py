@@ -85,7 +85,7 @@ for pixelX in range(imageWidth):
 image = Image.fromarray(iArray)
 image.show()
 try:
-    image.save("tempnimage.png", format="PNG")
+    image.save("images/tempnimage.png", format="PNG")
 except:
     print("Couldn't save file")
 

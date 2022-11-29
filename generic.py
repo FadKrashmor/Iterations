@@ -15,16 +15,20 @@ Rev 1.1 - 22 Nov 22
     * Initialisation effected by keyword arguments
 Rev 1.2 - 24 Nov 22
     * Streamlining, function z2_minus_c() now generic.
+Rev 1.3 - 29 Nov 22
+    * Separation of array travers and iteration on pixel. Three sub-classes:
+    (Julia, Mandelbrot and M(andel)brotRealPower)
 @author: Owner
 """
 from sys import path
 if not "../modules" in path:
     path.append('../modules')
-import myColour
 import numpy as np
 from datetime import datetime
 from tkinter import Tk, Frame, Label, StringVar, Entry, Button, E, W
 from PIL import Image
+import myColour
+from myMathOO import ComplexVar
 #
 # Iterate ??
 #
@@ -41,7 +45,7 @@ class GenIteration():
         self.xEnd = kwargs.setdefault("xEnd", 2)
         self.yStart = kwargs.setdefault("yStart", -1.5)
         self.imageRatio = kwargs.setdefault("imageRatio", 0.75)
-        self.xSize = kwargs.setdefault("xSize", 720)
+        self.xSize = kwargs.setdefault("xSize", 400)
         self.saveImage = kwargs.setdefault("saveImage", False)
         self.showImage = kwargs.setdefault("showImage", True)
         
@@ -357,9 +361,15 @@ class GenIteration():
         else:
             self.messageText.set(self.MESSAGES[5])
 
-    def contour(self, i):
-        index = i % len(self.contourColours)
-        return self.contourColours[index]
+    def getContourColour(self, i):
+        if self.contourInputActive == True:
+            if i > self.contourStart:
+                colour = self.contourColours[i%len(self.contourColours)]
+            else:
+                colour = self.infColour
+        else:
+            colour = self.infColour
+        return colour
 
     def create_image(self):        
         while True:
@@ -404,18 +414,11 @@ class GenIteration():
         print("x start", self.xStart, ": x end", self.xEnd)
         print("y start", self.yStart, ": y end", self.yEnd)
 
-        #Make start less than end
-        if self.xEnd < self.xStart:
-            self.xStart, self.xEnd = self.xEnd, self.xStart
-        if self.yEnd < self.yStart:
-            self.yStart, self.yEnd = self.yEnd, self.yStart
-        #Determine increase per pixel
-        self.xIncr = (self.xEnd - self.xStart)/self.xSize
-        self.yIncr = (self.yEnd - self.yStart)/self.ySize
 
         self.iArray = np.ones((self.ySize, self.xSize, 3), dtype=np.uint8)
 
-        self.iterate()
+        self.traverse_array(self.iArray, self.xStart, self.xEnd, 
+                            self.yStart, self.yEnd, self.xSize, self.ySize)
 
         im = Image.fromarray(self.iArray)
         if self.showImage:
@@ -427,39 +430,45 @@ class GenIteration():
         self.runButton["state"] = "active"
         self.messageText.set(self.MESSAGES[0])
 
-    def iterate(self):
-        #Dummy iteration
-        for xPixel in range(self.xSize):
-            for yPixel in range(self.ySize):
-                #Initialise pixel
-                colour = self.defaultColour
+    def traverse_array(self, array, xStart, xEnd, yStart, yEnd, xSize, ySize):
+        #Make start less than end
+        if xEnd < xStart:
+            xStart, xEnd = xEnd, xStart
+        if yEnd < yStart:
+            yStart, yEnd = yEnd, yStart
+        #Determine increase per pixel
+        xIncr = (xEnd - xStart)/xSize
+        yIncr = (yEnd - yStart)/ySize
+
+        x = xStart
+        for xPixel in range(xSize):
+            y = yStart
+            for yPixel in range(ySize):
                 # - do something - 
-                for i in range(self.maxIter):
-                    #Compute:
-                    #  determine what colour the pixel should have
-                    break
-                #end_for_i
-                self.iArray[(self.ySize -1 -yPixel), xPixel] = colour
-            #end_for_y    
+                colour = self.iterate(self.xSeed, self.ySeed, 
+                                      x, y, self.setColour, self.maxIter, 
+                                      self.LIMIT)
+                array[(ySize -1 -yPixel), xPixel] = colour
+                y+= yIncr
+            #end_for_y
+            x += xIncr
         #end_for_x
-        return
+
+    def iterate(self, x1, y1, x2, y2, colour, maxIter, limit):
+        #Dummy iteration
+        for i in range(self.maxIter):
+            #Compute:
+            #  determine what colour the pixel should have
+            break
+        #end_for_i
+        return colour
     
     def save_image(self, image):
         try:
-            image.save("tempgimage.png", format="PNG")
+            image.save("images/tempgimage.png", format="PNG")
         except:
             print("Couldn't save file")
                 
-    #Formulas
-    def z2_minus_c(self, x, y, cr, ci):
-        #Compute z**2 - c
-        xSq = x*x
-        ySq = y*y
-        y = x*y
-        y = y + y - ci
-        x = xSq - ySq - cr
-        return x, y
-
                    
 class Julia(GenIteration):
     """ 
@@ -475,38 +484,28 @@ class Julia(GenIteration):
     #It is possible to change the initial "seed" value of c
     #via the generic GUI
     
-    def iterate(self):
-        xCurrent = self.xStart
-        for xPixel in range(self.xSize):
-            yCurrent = self.yStart
-            for yPixel in range(self.ySize):
-                x = xCurrent
-                y = yCurrent
-                colour = self.setColour
-                for i in range(self.maxIter):
-                    #Compute next z value
-                    x, y = super().z2_minus_c(x, y, self.xSeed, self.ySeed)
-                    #Test
-                    if (x*x + y*y) > self.LIMIT:
-                        if self.contourInputActive == True:
-                            if i > self.contourStart:
-                                colour = self.contour(i)
-                            else:
-                                colour = self.infColour
-                        else:
-                            colour = self.infColour
-                        break
-                    else:
-                        continue
-                #end_for_i
-                self.iArray[(self.ySize -1 -yPixel), xPixel] = colour
-                yCurrent += self.yIncr
-            #end_for_y    
-            xCurrent += self.xIncr
-        #end_for_x
-    
+    def iterate(self, cReal, cImag, zReal, zImag, colour, maxIter, limit):
+        for i in range(self.maxIter):
+            #Compute next z value
+            zReal, zImag = self.z2_minus_c(zReal, zImag, cReal, cImag)
+            #Test
+            if (zReal*zReal + zImag*zImag) > limit:
+                colour = super().getContourColour(i)
+                break
+        #end_for_i
+        return colour
 
-class Mandelbrot(GenIteration):
+    #Formulas
+    def z2_minus_c(self, x, y, cr, ci):
+        #Compute z**2 - c
+        xSq = x*x
+        ySq = y*y
+        y = x*y
+        y = y + y - ci
+        x = xSq - ySq - cr
+        return x, y
+
+class Mandelbrot(Julia):
     """ 
     Date 21 Nov 22
     Mandelbrot iteration
@@ -525,42 +524,58 @@ class Mandelbrot(GenIteration):
         
         super().__init__(master, **kwargs)
         
-    def iterate(self):
-        cReal = self.xStart
-        for xPixel in range(self.xSize):
-            cImag = self.yStart
-            for yPixel in range(self.ySize):
-                x = self.xSeed
-                y = self.ySeed
-                colour = self.setColour
-                for i in range(self.maxIter):
-                    #Compute next z value
-                    x, y = super().z2_minus_c(x, y, cReal, cImag)
-                    #Test
-                    if (x*x + y*y) > self.LIMIT:
-                        if self.contourInputActive == True:
-                            if i > self.contourStart:
-                                colour = self.contour(i)
-                            else:
-                                colour = self.infColour
-                        else:
-                            colour = self.infColour
-                        break
-                    else:
-                            continue
-                #end_for_i
-                self.iArray[(self.ySize -1 -yPixel), xPixel] = colour
-                cImag += self.yIncr
-            #end_for_y    
-            cReal += self.xIncr
-        #end_for_x
+    def iterate(self, zReal, zImag, cReal, cImag, colour, maxIter, limit):
+        for i in range(self.maxIter):
+            #Compute next z value
+            zReal, zImag = super().z2_minus_c(zReal, zImag, cReal, cImag)
+            #Test
+            if (zReal*zReal + zImag*zImag) > limit:
+                colour = super().getContourColour(i)
+                break
+        #end_for_i
+        return colour
 
+class MbrotRealPower(GenIteration):
+
+    title = "Mandelbrot++:  z0 = 0;  z := z**power - c;  c = (x, iy)"
+
+    def __init__(self, master, **kwargs):
+        self.zPower = kwargs.setdefault("zPower", 3)
+        kwargs.setdefault("seed", [0, 0])
+        kwargs.setdefault("xStart", -1.6)
+        kwargs.setdefault("xEnd", 1.6)
+        kwargs.setdefault("yStart", -1.2)
+        kwargs.setdefault("imageRatio", 0.75)
         
+        super().__init__(master, **kwargs)
+        
+    def iterate(self, zReal, zImag, cReal, cImag, colour, maxIter, limit):
+        var1 = ComplexVar(zReal, zImag)
+        var2 = ComplexVar(cReal, cImag)
+        for i in range(maxIter):
+            #Compute next z value
+            var1 = var1.power_dm(self.zPower).minus(var2)
+            #Test
+            if var1.abs_val() > limit:
+                colour = super().getContourColour(i)
+                break
+        #end_for_i
+        return colour
+
+    def function(self, var1, var2):
+        #Mandlebrot iteration
+        return var1.power_dm(self.zPower).minus(var2)
+    
 #MAIN
-current = "j"
-root = Tk()
-if current == "j":
-    myGUI = Julia(root, seed=[0.745405, 0.113006], palette="3CAL_0")
-if current == "m":
-    myGUI = Mandelbrot(root, xStart=-1, xEnd=2, yStart=-1.125)
-root.mainloop()
+if __name__ == "__main__":
+    current = "p"
+    root = Tk()
+    if current == "g":
+        myGUI = GenIteration(root)
+    if current == "j":
+        myGUI = Julia(root, seed=[0.745405, 0.113006], palette="3CAL_0")
+    if current == "m":
+        myGUI = Mandelbrot(root, xStart=-1, xEnd=2, yStart=-1.125)
+    if current == "p":
+        myGUI = MbrotRealPower(root, zPower=5)
+    root.mainloop()
