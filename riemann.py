@@ -47,7 +47,7 @@ class RiemannIteration():
 
         self.set_matrices(self.xAngle+90, self.zAngle)
             #The values for the matrices mean that the angles can be  
-            #understood as latitude and longitude (increasing Eastwards)
+            #understood as latitude and longitude (increasing Westwards)
             
         self.ySize = int(self.xSize * self.imageRatio)
         self.xSeed = self.seed[0]
