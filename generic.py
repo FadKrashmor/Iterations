@@ -1,6 +1,7 @@
-""" Date 22 Nov 22
+""" Date 30 Nov 22
 Generic GUI to set up creation of image from Julia style iterations. Taken 
-from earlier program mbrot_np, rev. 2.5.
+from earlier program mbrot_np, rev. 2.5. Some iterations are defined in child 
+classes below.
 Rev 1.0 - 21 Nov 22
     Features:
     * Facility to match x and y scales.
@@ -16,8 +17,10 @@ Rev 1.1 - 22 Nov 22
 Rev 1.2 - 24 Nov 22
     * Streamlining, function z2_minus_c() now generic.
 Rev 1.3 - 29 Nov 22
-    * Separation of array travers and iteration on pixel. Three sub-classes:
-    (Julia, Mandelbrot and M(andel)brotRealPower)
+    * Separation of array traverse and iteration on pixel. Three sub-classes:
+    (Julia, Mandelbrot and M<andel>brotRealPower)
+Rev 2.0 - 30 Nov 22
+    * Minor adjustments. A significant milestone has been reached.
 @author: Owner
 """
 from sys import path
@@ -45,7 +48,7 @@ class GenIteration():
         self.xEnd = kwargs.setdefault("xEnd", 2)
         self.yStart = kwargs.setdefault("yStart", -1.5)
         self.imageRatio = kwargs.setdefault("imageRatio", 0.75)
-        self.xSize = kwargs.setdefault("xSize", 400)
+        self.xSize = kwargs.setdefault("xSize", 720)
         self.saveImage = kwargs.setdefault("saveImage", False)
         self.showImage = kwargs.setdefault("showImage", True)
         
@@ -465,7 +468,7 @@ class GenIteration():
     
     def save_image(self, image):
         try:
-            image.save("images/tempgimage.png", format="PNG")
+            image.save("../images/tempgimage.png", format="PNG")
         except:
             print("Couldn't save file")
                 
@@ -487,7 +490,7 @@ class Julia(GenIteration):
     def iterate(self, cReal, cImag, zReal, zImag, colour, maxIter, limit):
         for i in range(self.maxIter):
             #Compute next z value
-            zReal, zImag = self.z2_minus_c(zReal, zImag, cReal, cImag)
+            zReal, zImag = self.function(zReal, zImag, cReal, cImag)
             #Test
             if (zReal*zReal + zImag*zImag) > limit:
                 colour = super().getContourColour(i)
@@ -495,8 +498,7 @@ class Julia(GenIteration):
         #end_for_i
         return colour
 
-    #Formulas
-    def z2_minus_c(self, x, y, cr, ci):
+    def function(self, x, y, cr, ci):
         #Compute z**2 - c
         xSq = x*x
         ySq = y*y
@@ -505,7 +507,7 @@ class Julia(GenIteration):
         x = xSq - ySq - cr
         return x, y
 
-class Mandelbrot(Julia):
+class Mandelbrot(GenIteration):
     """ 
     Date 21 Nov 22
     Mandelbrot iteration
@@ -527,7 +529,7 @@ class Mandelbrot(Julia):
     def iterate(self, zReal, zImag, cReal, cImag, colour, maxIter, limit):
         for i in range(self.maxIter):
             #Compute next z value
-            zReal, zImag = super().z2_minus_c(zReal, zImag, cReal, cImag)
+            zReal, zImag = self.function(zReal, zImag, cReal, cImag)
             #Test
             if (zReal*zReal + zImag*zImag) > limit:
                 colour = super().getContourColour(i)
@@ -535,8 +537,22 @@ class Mandelbrot(Julia):
         #end_for_i
         return colour
 
-class MbrotRealPower(GenIteration):
+    def function(self, x, y, cr, ci):
+        #Compute z**2 - c
+        xSq = x*x
+        ySq = y*y
+        y = x*y
+        y = y + y - ci
+        x = xSq - ySq - cr
+        return x, y
 
+
+class MbrotRealPower(GenIteration):
+    """ 
+    Date 29 Nov 22
+    Mandelbrot iteration, variable power
+    @author: Owner
+    """
     title = "Mandelbrot++:  z0 = 0;  z := z**power - c;  c = (x, iy)"
 
     def __init__(self, master, **kwargs):
@@ -562,10 +578,6 @@ class MbrotRealPower(GenIteration):
         #end_for_i
         return colour
 
-    def function(self, var1, var2):
-        #Mandlebrot iteration
-        return var1.power_dm(self.zPower).minus(var2)
-    
 #MAIN
 if __name__ == "__main__":
     current = "p"
@@ -577,5 +589,5 @@ if __name__ == "__main__":
     if current == "m":
         myGUI = Mandelbrot(root, xStart=-1, xEnd=2, yStart=-1.125)
     if current == "p":
-        myGUI = MbrotRealPower(root, zPower=5)
+        myGUI = MbrotRealPower(root, zPower=5, maxIter=60)
     root.mainloop()

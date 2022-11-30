@@ -17,6 +17,7 @@ on the origin. The program works to view a hemisphere in the following way:
 Parameters can be set when calling the program.
     
 @author: Owner
+(Many thanks to Karl-Heinz Becker and Michael Doerffler)
 """
 from datetime import datetime
 from numpy import ones, uint8
@@ -24,7 +25,7 @@ from PIL import Image
 from sys import path
 if not "../modules" in path:
     path.append('../modules')
-from matrices import matrix_3x3
+from myMatrices import matrix_3x3
 import myColour
 from myMathOO import ComplexVar
 
@@ -35,7 +36,7 @@ class RiemannIteration():
         self.setColour = kwargs.setdefault("setColour", [0xD0,0xFF,0xFF])
         self.infColour = kwargs.setdefault("infColour", [0x03,0x03,0x03])
         self.palette = kwargs.setdefault("palette", "3TEST")
-        self.maxIter = kwargs.setdefault("maxIter", 20)
+        self.maxIter = kwargs.setdefault("maxIter", 100)
         self.xAngle = kwargs.setdefault("xAngle", 0)
         self.zAngle = kwargs.setdefault("zAngle", 0)
         self.imageRatio = kwargs.setdefault("imageRatio", 1)
@@ -46,7 +47,8 @@ class RiemannIteration():
 
         self.set_matrices(self.xAngle+90, self.zAngle)
             #The values for the matrices mean that the angles can be  
-            #understood as latitude and longitude (increasing westwards)
+            #understood as latitude and longitude (increasing Eastwards)
+            
         self.ySize = int(self.xSize * self.imageRatio)
         self.xSeed = self.seed[0]
         self.ySeed = self.seed[1]
@@ -99,10 +101,10 @@ class RiemannIteration():
             y = -1
             for yPixel in range(ySize):
                 #Initialise pixel
-                hypeSq = x*x + y*y
+                hypSq = x*x + y*y
                 colour = self.defaultColour
                 #Is it outside unit circle?
-                if hypeSq > 1:
+                if hypSq > 1:
                     self.iArray[yPixel, xPixel] = colour
                     y += yIncr
                     continue
@@ -148,7 +150,7 @@ class RiemannIteration():
 
     def save_image(self, image):
         try:
-            image.save("images/temprimage.png", format="PNG")
+            image.save("../images/temprimage.png", format="PNG")
         except:
             print("Couldn't save file")
 
@@ -225,6 +227,6 @@ if __name__ == "__main__":
     if tc==1:
         myIter = MbrotRIter(xAngle=-90, zAngle=0, palette = "3CAL_0")
     if tc==2:
-        myIter = MbrotRRealPower(xAngle=0, zAngle=-90, zPower=6,\
-                                    palette = "3CAL_0")
+        myIter = MbrotRRealPower(xAngle=40, zAngle=-70, zPower=2.2,\
+                                    maxIter=60, palette = "9BL_GR")
     myIter.run()
