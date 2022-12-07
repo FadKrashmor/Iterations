@@ -21,13 +21,18 @@ Rev 1.3 - 29 Nov 22
     (Julia, Mandelbrot and M<andel>brotRealPower)
 Rev 2.0 - 30 Nov 22
     * Minor adjustments. A significant milestone has been reached.
+Rev 2.1 - 07 Dec 22
+    * LIMIT now a parameter. (e.g. escape radius fpr Mandelbrot iteration).
+    * Adds an iteration for cube roots of one (Newton's method).
 @author: Owner
+(Many thanks to Karl-Heinz Becker and Michael Doerffler)
 """
 from sys import path
 if not "../modules" in path:
     path.append('../modules')
 import numpy as np
 from datetime import datetime
+from scipy import nextafter
 from tkinter import Tk, Frame, Label, StringVar, Entry, Button, E, W
 from PIL import Image
 import myColour
@@ -44,6 +49,7 @@ class GenIteration():
         self.infColour = kwargs.setdefault("infColour", [0x03,0x03,0x03])
         self.palette = kwargs.setdefault("palette", "3TEST")
         self.maxIter = kwargs.setdefault("maxIter", 100)
+        self.limit = kwargs.setdefault("limit", 25)
         self.xStart = kwargs.setdefault("xStart", -2)
         self.xEnd = kwargs.setdefault("xEnd", 2)
         self.yStart = kwargs.setdefault("yStart", -1.5)
@@ -67,7 +73,6 @@ class GenIteration():
         self.contourInputActive = False
 
         self.ABSURD_ITER = 10000
-        self.LIMIT = 49
 
 
         self.master = master
@@ -450,7 +455,7 @@ class GenIteration():
                 # - do something - 
                 colour = self.iterate(self.xSeed, self.ySeed, 
                                       x, y, self.setColour, self.maxIter, 
-                                      self.LIMIT)
+                                      self.limit)
                 array[(ySize -1 -yPixel), xPixel] = colour
                 y+= yIncr
             #end_for_y
@@ -475,7 +480,7 @@ class GenIteration():
                    
 class Julia(GenIteration):
     """ 
-    Date 21 Nov 22
+    Date: 21 Nov 22
     Julia iteration
     @author: Owner
     
@@ -493,7 +498,7 @@ class Julia(GenIteration):
             zReal, zImag = self.function(zReal, zImag, cReal, cImag)
             #Test
             if (zReal*zReal + zImag*zImag) > limit:
-                colour = super().getContourColour(i)
+                colour = self.getContourColour(i)
                 break
         #end_for_i
         return colour
@@ -509,7 +514,7 @@ class Julia(GenIteration):
 
 class Mandelbrot(GenIteration):
     """ 
-    Date 21 Nov 22
+    Date: 21 Nov 22
     Mandelbrot iteration
     @author: Owner
     """    
@@ -532,7 +537,7 @@ class Mandelbrot(GenIteration):
             zReal, zImag = self.function(zReal, zImag, cReal, cImag)
             #Test
             if (zReal*zReal + zImag*zImag) > limit:
-                colour = super().getContourColour(i)
+                colour = self.getContourColour(i)
                 break
         #end_for_i
         return colour
@@ -549,7 +554,7 @@ class Mandelbrot(GenIteration):
 
 class MbrotRealPower(GenIteration):
     """ 
-    Date 29 Nov 22
+    Date: 29 Nov 22
     Mandelbrot iteration, variable power
     @author: Owner
     """
@@ -573,14 +578,62 @@ class MbrotRealPower(GenIteration):
             var1 = var1.power_dm(self.zPower).minus(var2)
             #Test
             if var1.abs_val() > limit:
-                colour = super().getContourColour(i)
+                colour = self.getContourColour(i)
                 break
+        #end_for_i
+        return colour
+
+class NCubeRoot1(GenIteration):
+    """
+    Date: 07 Dec 22
+    Shows contours in the basins of attraction for the cube roots of one,
+    approached using Newton's method.
+    """
+    def __init__(self, master, **kwargs):
+        kwargs.setdefault('setColour', [0xFF,0x40,0x40])
+        kwargs.setdefault('palette', '4CAL_4')
+        kwargs.setdefault('maxIter', 16)
+        kwargs.setdefault("limit", 0.0025)
+
+        super().__init__(master, **kwargs)
+
+    def belongs_to_root(self, x, y, limit):
+        #given (x,y), is the point close to one of the cube roots of one?
+        #returns 0 if not; 1, 2 or 3 depending on which root is close
+        if ((x+0.5)**2 + (y+0.8660254)**2) < limit:
+            return 1
+        elif ((x+0.5)**2 + (y-0.8660254)**2) < limit:
+            return 2
+        elif ((x-1)**2 + y**2) < limit:
+            return 3
+        else:
+            return 0
+    
+    def iterate(self, xSeed, ySeed, x, y, colour, maxIter, limit):
+        # Find cube roots of 1 using Newton's method
+        # Internally:
+        #   0: root not yet determined
+        #   1, 2 or 3 for each respective root
+        rootFound = 0
+        for i in range(maxIter):
+            if (x==0) and (y==0):
+                x = nextafter(0,1)
+                continue
+            x_sq, y_sq, d_sq = x*x, y*y, (x*x + y*y)
+            temp = 3*(d_sq*d_sq)
+            x_new = 2*x/3 + (x_sq - y_sq)/temp
+            y_new = 2*y/3 - 2*x*y/temp
+            rootFound = self.belongs_to_root(x_new, y_new, limit)
+            if rootFound:
+                return self.getContourColour(i)
+            x = x_new
+            y = y_new
         #end_for_i
         return colour
 
 #MAIN
 if __name__ == "__main__":
-    current = "p"
+    current = "n"
     root = Tk()
     if current == "g":
         myGUI = GenIteration(root)
@@ -588,6 +641,8 @@ if __name__ == "__main__":
         myGUI = Julia(root, seed=[0.745405, 0.113006], palette="3CAL_0")
     if current == "m":
         myGUI = Mandelbrot(root, xStart=-1, xEnd=2, yStart=-1.125)
+    if current == "n":
+        myGUI = NCubeRoot1(root, xSize=800, maxIter=12)
     if current == "p":
-        myGUI = MbrotRealPower(root, zPower=5, maxIter=60)
+        myGUI = MbrotRealPower(root, zPower=5, maxIter=60, limit=49)
     root.mainloop()
