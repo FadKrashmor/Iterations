@@ -1,4 +1,4 @@
-""" Date 30 Nov 22
+"""
 Generic GUI to set up creation of image from Julia style iterations. Taken 
 from earlier program mbrot_np, rev. 2.5. Some iterations are defined in child 
 classes below.
@@ -22,7 +22,7 @@ Rev 1.3 - 29 Nov 22
 Rev 2.0 - 30 Nov 22
     * Minor adjustments. A significant milestone has been reached.
 Rev 2.1 - 07 Dec 22
-    * LIMIT now a parameter. (e.g. escape radius fpr Mandelbrot iteration).
+    * LIMIT now a parameter. (e.g. escape radius for Mandelbrot iteration).
     * Adds an iteration for cube roots of one (Newton's method).
 @author: Owner
 (Many thanks to Karl-Heinz Becker and Michael Doerffler)
