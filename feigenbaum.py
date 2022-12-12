@@ -5,9 +5,11 @@ Rev 1.0 - 09 Dec 22
     The program creates a Feigenbaum diagram. It can display (and save) this as 
     a plot. Alternatively, it can simply display the image (and save it) using 
     PIL.
-Rev 1.1 -11 Dec 22
+Rev 1.1 - 11 Dec 22
     Better functional decomposition.
     Class FeigPtoFofP to display feigenbaum p to f(p).
+Rev 1.2 - 12 Dec 22
+    Correction to FeigPtoFofP, minor improvements
 @author: Owner
 """
 
@@ -24,7 +26,7 @@ class Feigenbaum():
         self.kStart = kwargs.setdefault("kStart", 1.6)
         self.kEnd = kwargs.setdefault("kEnd", 3.0)
         self.yMin = kwargs.setdefault("yMin", 0.0)
-        self.yMax = kwargs.setdefault("yMax", 1.5)
+        self.yMax = kwargs.setdefault("yMax", 1.4)
         self.p0 = kwargs.setdefault("p0", 0.3)
         self.ignore = kwargs.setdefault("ignore", 20)
         self.maxIter = kwargs.setdefault("maxIter", 40)
@@ -34,16 +36,16 @@ class Feigenbaum():
         self.SUCCESS = 1
         self.OVERFLOW = 2
         self.OUTOFBOUNDS = 3
-        self.kRes = 0
         
     def plot(self, **kwargs):
+        #"kRes"(~olution) gives the number of increments to the k-value within 
+        #bounds set. For the standard iteration this is the x-axis, thus is 
+        #the same as the number of x-pixels.
         self.xSize = kwargs.setdefault("xSize", 600)
         self.ySize = kwargs.setdefault("ySize", 400)
-        self.kRes = kwargs.setdefault("kRes", 0) 
-        self.fname = kwargs.setdefault("images/tempplot.png")
+        self.kRes = kwargs.setdefault("kRes", self.xSize) 
+        self.fname = kwargs.setdefault("fname", "../images/tempfplot.png")
         self.savePlot = kwargs.setdefault("savePlot", False)
-        if self.kRes == 0:
-            self.kRes = self.xSize
         self.myArray = ones((self.ySize, self.xSize, 3), dtype=uint8)
         self.set_scales()
         self.traverse_k()
@@ -59,13 +61,16 @@ class Feigenbaum():
         ax.set_aspect('auto')
         #Save the image
         if self.savePlot == True:
-            savefig(self.fname)
+            try:
+                savefig(self.fname, format="PNG")
+            except:
+                print("Couldn't save file", self.fname)
 
     def image(self, **kwargs):
         self.xSize = kwargs.setdefault("xSize", 800)
         self.ySize = kwargs.setdefault("ySize", 400)
         self.kRes = kwargs.setdefault("kRes", 0) 
-        self.fname = kwargs.setdefault("images/tempfimage.png")
+        self.fname = kwargs.setdefault("fname", "../images/tempfimage.png")
         self.saveImage = kwargs.setdefault("saveImage", False)
         if self.kRes == 0:
             self.kRes = self.xSize
@@ -78,7 +83,10 @@ class Feigenbaum():
         im = Image.fromarray(self.myArray)
         im.show()
         if self.saveImage == True:
-            im.save(self.fname)
+            try:
+                im.save(self.fname, format="PNG")
+            except:
+                print("Couldn't save file", self.fname)
 
     def set_scales(self):
         self.xMin = self.kStart
@@ -184,38 +192,39 @@ class FeigPtoFofP(Feigenbaum):
         for i in range(self.maxIter):
             fp = self.function(p, k)
             if i < self.ignore:
+                p = fp
                 continue
             #set pixel for this p
             retcode, xPixel, yPixel= self.get_pixel(p, fp)
-            p = fp
             if retcode == self.SUCCESS:
-                if i % 2 == 0:
-                    colour = self.colour0
-                else:
-                    colour = self.colour1
-                self.myArray[self.ySize-1-yPixel, xPixel] = colour        
-            else:
-                print("iteration", i, " k:", k, " p out of bounds:", p)
-                break
+                self.myArray[self.ySize-1-yPixel, xPixel]\
+                             = self.choose_colour(i)
+            #else p is out of display bounds
+            p = fp
         #end_for_i
 
         
 if __name__=="__main__":
-    tc = 0
+    tc = 4
     if tc==0:
-        f=Feigenbaum()
-        f.plot(xSize=300, ySize=200, fname="../images/tempplot2.png")
+        f=Feigenbaum(kStart=0, ignore=0)
+        f.plot(fname="../nonExistentDir/tempplot2.png", savePlot=True)
         print("Now show the plot; look at plot window?")
     if tc==1:
-        f=Feigenbaum(ignore=0, maxIter=50)
-        f.image()
+        f=Feigenbaum(xSize=300, ySize=200, maxIter=50)
+        f.image(saveImage=True)
     if tc==2:
-        f=Feig2(ignore=5, maxIter=60, kStart=4.5, kEnd=7.5, pMin=-2)
+        f=Feig2(ignore=5, maxIter=60, kStart=4.5, kEnd=7.5, yMin=-2, yMax=3)
         f.plot()
+        f.image()
     if tc==3:
         f=Feig3(yMax=1.8, kEnd=3.1)
         f.plot()
     if tc==4:
-        f=FeigPtoFofP(kStart=0, kEnd=3, maxIter=200, ignore=50)
-        f.plot(fpMin=1, fpMax=1.4, kRes=400)
+        f=FeigPtoFofP(kStart=1.8, kEnd=3, yMin=1, yMax=1.4)
+        f.plot(kRes=100)
+        f.image()
+    if tc==5:
+        f=FeigPtoFofP(kStart=0, kEnd=3, ignore=50, maxIter=100)
+        f.plot(kRes=200)
         f.image()

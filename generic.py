@@ -24,6 +24,8 @@ Rev 2.0 - 30 Nov 22
 Rev 2.1 - 07 Dec 22
     * LIMIT now a parameter. (e.g. escape radius for Mandelbrot iteration).
     * Adds an iteration for cube roots of one (Newton's method).
+Rev 2,2 - 12 Dec 22
+    * Parameterised filename
 @author: Owner
 (Many thanks to Karl-Heinz Becker and Michael Doerffler)
 """
@@ -56,6 +58,7 @@ class GenIteration():
         self.imageRatio = kwargs.setdefault("imageRatio", 0.75)
         self.xSize = kwargs.setdefault("xSize", 720)
         self.saveImage = kwargs.setdefault("saveImage", False)
+        self.fname = kwargs.setdefault("fname", "../images/tempgimage.png")
         self.showImage = kwargs.setdefault("showImage", True)
         
         self.yEnd = self.yStart + \
@@ -473,7 +476,7 @@ class GenIteration():
     
     def save_image(self, image):
         try:
-            image.save("../images/tempgimage.png", format="PNG")
+            image.save(self.fname, format="PNG")
         except:
             print("Couldn't save file")
                 
