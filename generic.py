@@ -26,6 +26,8 @@ Rev 2.1 - 07 Dec 22
     * Adds an iteration for cube roots of one (Newton's method).
 Rev 2,2 - 12 Dec 22
     * Parameterised filename
+Rev 2.3 - 14 Dec 22
+    * Adds speculative class MagModel1
 @author: Owner
 (Many thanks to Karl-Heinz Becker and Michael Doerffler)
 """
@@ -634,9 +636,50 @@ class NCubeRoot1(GenIteration):
         #end_for_i
         return colour
 
-#MAIN
+
+class MagModel1(GenIteration):
+    """ 
+    Date: 14 Dec 22
+    Magnetism Model 1
+    @author: Owner
+    """
+    title = "Magnetism model 1"
+
+    def __init__(self, master, **kwargs):
+        kwargs.setdefault("seed", [0, 0])
+        kwargs.setdefault("xStart", -1)
+        kwargs.setdefault("xEnd", 3)
+        kwargs.setdefault("yStart", -1.5)
+        kwargs.setdefault("imageRatio", 0.75)
+        
+        super().__init__(master, **kwargs)
+        
+    def iterate(self, zReal, zImag, cReal, cImag, colour, maxIter, limit):
+        var1 = ComplexVar(zReal, zImag)
+        var2 = ComplexVar(cReal, cImag)
+        for i in range(maxIter):
+            #Compute next z value
+            var1 = self.function(var1, var2)
+            #Test
+            if var1.abs_val() > limit:
+                colour = self.getContourColour(i)
+                break
+        #end_for_i
+        return colour
+
+    def function(self, var1, var2):
+        temp1 = var1.power(2).plus(var2)
+        temp1 = temp1.add_c1(-1)
+        temp2 = var1.times(2).plus(var2)
+        temp2 = temp2.add_c1(-2)
+        temp3 = temp1.divide(temp2)
+        return temp3.power(2)
+    
+"""
+MAIN
+"""
 if __name__ == "__main__":
-    current = "n"
+    current = "mag"
     root = Tk()
     if current == "g":
         myGUI = GenIteration(root)
@@ -648,4 +691,7 @@ if __name__ == "__main__":
         myGUI = NCubeRoot1(root, xSize=800, maxIter=12)
     if current == "p":
         myGUI = MbrotRealPower(root, zPower=5, maxIter=60, limit=49)
+    if current == "mag":
+        myGUI = MagModel1(root, maxIter=80, xSize=600)
+
     root.mainloop()
