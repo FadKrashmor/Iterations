@@ -97,15 +97,15 @@ class RiemannIteration():
         yIncr = (2/ySize)
         
         x = -1
-        for xPixel in range(xSize):
+        for self.xPixel in range(xSize):
             y = -1
-            for yPixel in range(ySize):
+            for self.yPixel in range(ySize):
                 #Initialise pixel
                 hypSq = x*x + y*y
                 colour = self.defaultColour
                 #Is it outside unit circle?
                 if hypSq > 1:
-                    self.iArray[yPixel, xPixel] = colour
+                    self.iArray[self.yPixel, self.xPixel] = colour
                     y += yIncr
                     continue
                 #Otherwise...
@@ -120,7 +120,7 @@ class RiemannIteration():
                                           self.setColour,
                                           self.maxIter, self.LIMIT)
                 #end_if
-                self.iArray[(ySize -1 -yPixel), xPixel] = colour
+                self.iArray[(self.ySize -1 -self.yPixel), self.xPixel] = colour
                 y += yIncr
             #end_for_y    
             x += xIncr
@@ -219,6 +219,7 @@ class MbrotRRealPower(RiemannIteration):
                 break
         #end_for_i
         return colour
+
 
 if __name__ == "__main__":
     tc=2
