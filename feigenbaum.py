@@ -124,8 +124,8 @@ class Feigenbaum():
             if retcode == self.SUCCESS:
                 self.myArray[self.ySize-1-yPixel, xPixel]\
                              = self.choose_colour(i)
-            else:
-                print("iteration", i, " k:", k, " p out of bounds:", p)
+            elif retcode == self.OVERFLOW:
+                print("Overflow")
                 break
         #end_for_i
 
@@ -199,13 +199,15 @@ class FeigPtoFofP(Feigenbaum):
             if retcode == self.SUCCESS:
                 self.myArray[self.ySize-1-yPixel, xPixel]\
                              = self.choose_colour(i)
-            #else p is out of display bounds
+            elif retcode == self.OVERFLOW:
+                break
+            #(else p is out of display bounds)
             p = fp
         #end_for_i
 
         
 if __name__=="__main__":
-    tc = 4
+    tc = 0
     if tc==0:
         f=Feigenbaum(kStart=0, ignore=0)
         f.plot(fname="../nonExistentDir/tempplot2.png", savePlot=True)
