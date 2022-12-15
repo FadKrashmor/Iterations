@@ -7,6 +7,8 @@ Rev 1.1 - 14 Dec 22
     * Generalised function call, requires constants to be given as a list
     * Rationalised logic of iteration
     * Added Orbiter class
+Rev 1.2 - 15 Dec 22
+    * No longer prints to console when point out of display bounds
 @author: Owner
 """
 
@@ -100,7 +102,8 @@ class Henon():
                 if i > self.ignore - 1:
                     self.myArray[(self.ySize -1 -yPixel), xPixel] = self.colour0
             else:
-                print("OOB - pixel, (x,y)=", x, y, "Iter:", i)
+                #print("OOB - pixel, (x,y)=", x, y, "Iter:", i)
+                pass
             #end_else
             #   the point may have been out of display bounds,
             #   find next one anyway in this case as well

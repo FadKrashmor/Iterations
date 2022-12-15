@@ -647,10 +647,12 @@ class MagModel1(GenIteration):
 
     def __init__(self, master, **kwargs):
         kwargs.setdefault("seed", [0, 0])
-        kwargs.setdefault("xStart", -1)
-        kwargs.setdefault("xEnd", 3)
-        kwargs.setdefault("yStart", -1.5)
-        kwargs.setdefault("imageRatio", 0.75)
+        kwargs.setdefault("xStart", -0.9)
+        kwargs.setdefault("xEnd", 3.5)
+        kwargs.setdefault("yStart", -2.2)
+        kwargs.setdefault("imageRatio", 1)
+        kwargs.setdefault("maxIter", 64)
+        kwargs.setdefault("xSize", 400)
         
         super().__init__(master, **kwargs)
         
@@ -668,18 +670,15 @@ class MagModel1(GenIteration):
         return colour
 
     def function(self, var1, var2):
-        temp1 = var1.power(2).plus(var2)
-        temp1 = temp1.add_c1(-1)
-        temp2 = var1.times(2).plus(var2)
-        temp2 = temp2.add_c1(-2)
-        temp3 = temp1.divide(temp2)
-        return temp3.power(2)
+        temp1 = var1.power(2).plus(var2).add_c1(-1)
+        temp2 = var1.times(2).plus(var2).add_c1(-2)
+        return temp1.divide(temp2).power(2)
     
 """
 MAIN
 """
 if __name__ == "__main__":
-    current = "mag"
+    current = "mag1"
     root = Tk()
     if current == "g":
         myGUI = GenIteration(root)
@@ -691,7 +690,7 @@ if __name__ == "__main__":
         myGUI = NCubeRoot1(root, xSize=800, maxIter=12)
     if current == "p":
         myGUI = MbrotRealPower(root, zPower=5, maxIter=60, limit=49)
-    if current == "mag":
-        myGUI = MagModel1(root, maxIter=80, xSize=600)
+    if current == "mag1":
+        myGUI = MagModel1(root, maxIter=80, xSize=400, palette="10CAL_10")
 
     root.mainloop()
