@@ -9,17 +9,19 @@ Rev 1.1 - 11 Dec 22
     Better functional decomposition.
     Class FeigPtoFofP to display feigenbaum p to f(p).
 Rev 1.2 - 12 Dec 22
-    Correction to FeigPtoFofP, minor improvements
+    Correction to FeigPtoFofP, minor improvements.
+Rev 1.3 - 18 Dec 22
+    Adds text to plot. Requires subclasses to define their own title.
 @author: Owner
 """
 
 from math import sin, cos
-from matplotlib.pyplot import rcParams, savefig, subplots
+from matplotlib.pyplot import rcParams, savefig, subplots, title, xlabel, ylabel
 from numpy import ones, uint8
 from PIL import Image
 
 class Feigenbaum():
-    title = "Feigenbaum"
+    title = "Feigenbaum: p := p + k*p*(1-p)"
     
     def __init__(self, **kwargs):
         
@@ -56,6 +58,9 @@ class Feigenbaum():
         fig, ax = subplots(figsize=(self.xSize*px, self.ySize*px))
         #Start and end of scales form the extent...
         extent = [self.xMin, self.xMax, self.yMin, self.yMax]
+        title(self.title)
+        xlabel("feedback k value")
+        ylabel("p value")
         #Draw the image, wherever you show your plots
         ax.imshow(self.myArray, interpolation='nearest', extent=extent)
         ax.set_aspect('auto')
@@ -111,7 +116,7 @@ class Feigenbaum():
         for i in range(self.kRes):
             self.iterate(k)
             k += kIncr
-        #end_for_x
+        #end_for_i
 
     def iterate(self, k):
         p = self.p0
@@ -125,7 +130,6 @@ class Feigenbaum():
                 self.myArray[self.ySize-1-yPixel, xPixel]\
                              = self.choose_colour(i)
             elif retcode == self.OVERFLOW:
-                print("Overflow")
                 break
         #end_for_i
 
@@ -154,12 +158,14 @@ class Feigenbaum():
     
 
 class Feig2(Feigenbaum):
+    title = "Feigenbaum: p := k*p*p*(1-p)"
     
     def function(self, p, k):
         return k*p*p*(1-p)
 
 
 class Feig3(Feigenbaum):
+    title = "Feigenbaum: p := k*sin(p)*cos(p)"
 
     def function(self, p, k):
         return k*sin(p)*(cos(p))
@@ -169,6 +175,7 @@ class FeigPtoFofP(Feigenbaum):
     """ 11 Dec 22
     Plots p to f(p) for standard function.
     """
+    title = "p to f(p)"
     def __init__(self, **kwargs):  
         self.xMin = kwargs.setdefault("xMin", 0)
         self.xMax = kwargs.setdefault("xMax", 1.4)
@@ -207,16 +214,16 @@ class FeigPtoFofP(Feigenbaum):
 
         
 if __name__=="__main__":
-    tc = 0
+    tc = 2
     if tc==0:
-        f=Feigenbaum(kStart=0, ignore=0)
-        f.plot(fname="../nonExistentDir/tempplot2.png", savePlot=True)
+        f=Feigenbaum(kStart=1.8, maxIter=512)
+        f.plot(savePlot=True, xSize=1000, ySize=700)
         print("Now show the plot; look at plot window?")
     if tc==1:
         f=Feigenbaum(xSize=300, ySize=200, maxIter=50)
         f.image(saveImage=True)
     if tc==2:
-        f=Feig2(ignore=5, maxIter=60, kStart=4.5, kEnd=7.5, yMin=-2, yMax=3)
+        f=Feig2(ignore=5, maxIter=60, kStart=4.5, kEnd=7.06, yMin=-2, yMax=3)
         f.plot()
         f.image()
     if tc==3:

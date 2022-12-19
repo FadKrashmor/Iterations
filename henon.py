@@ -9,16 +9,18 @@ Rev 1.1 - 14 Dec 22
     * Added Orbiter class
 Rev 1.2 - 15 Dec 22
     * No longer prints to console when point out of display bounds
+Rev 1.3 - 18 Dec 22
+    * Adds text to plot, requires subclasses to give a title
 @author: Owner
 """
 
 from math import sin, cos, pi
-from matplotlib.pyplot import rcParams, savefig, subplots
+from matplotlib.pyplot import rcParams, savefig, subplots, title, xlabel, ylabel
 from numpy import ones, uint8
 from PIL import Image
 
 class Henon():
-    
+    title = "Hénon Attractor"
     def __init__(self, **kwargs):
         #The function uses constants a and b:
         self.constants = kwargs.setdefault("constants", [1.4, 0.3])
@@ -51,6 +53,9 @@ class Henon():
         fig, ax = subplots(figsize=(self.xSize*px, self.ySize*px))
         #Start and end of scales form the extent...
         extent = [self.xMin, self.xMax, self.yMin, self.yMax]
+        xlabel("x value")
+        ylabel("y value")
+        title(self.title)
         #Draw the image, wherever you show your plots
         ax.imshow(self.myArray, interpolation='nearest', extent=extent)
         ax.set_aspect('auto')
@@ -137,6 +142,7 @@ class Henon():
 
 
 class Orbiter(Henon):
+    title = "Orbiter"
     def __init__(self, **kwargs):
         #The function uses a constant phase angle: 0 =< angle =< pi:
         self.constants = kwargs.setdefault("constants", [pi/3])
