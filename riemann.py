@@ -6,16 +6,18 @@ either do or do not tend to infinity for each point in a plane.
 Conceptually, the plane is projected onto a sphere of unit radius resting 
 on the origin. The program works to view a hemisphere in the following way: 
     * for each point in the plane's unit circle, map it by projecting 
-    vertically to find the z coord.;
+      vertically to find the z coord.;
     * rotate the sphere the desired amount around the x and z axes;
-    * project from z=2 (the top of the sphere as it now appears) through the
-    new position, back to the plane, to find the associated x and y coordinates;
+    * project from the top of the sphere as it now appears through the
+      new position, back to the plane, to find the associated x and y coordinates;
     * perform the desired iteration on that point: it is envisaged that the 
-    return code is a colour which depends on the number of iterations completed;
+      return code is a colour which depends on the number of iterations completed;
     * the result is stored in a numpy array of the desired resolution;
     * using PIL the array can be displayed to screen and/or saved to file.
 Parameters can be set when calling the program.
-    
+Rev 1.1 - 22 Dec 22
+    * Reversed sign in function
+    * Parameterised default colour and limit (square of escape radius)
 @author: Owner
 (Many thanks to Karl-Heinz Becker and Michael Doerffler)
 """
@@ -35,8 +37,10 @@ class RiemannIteration():
         self.seed = kwargs.setdefault("seed", [0, 0])
         self.setColour = kwargs.setdefault("setColour", [0xD0,0xFF,0xFF])
         self.infColour = kwargs.setdefault("infColour", [0x03,0x03,0x03])
+        self.defColour = kwargs.setdefault("defColour", [0x80,0x80,0x80])
         self.palette = kwargs.setdefault("palette", "3TEST")
         self.maxIter = kwargs.setdefault("maxIter", 100)
+        self.limit = kwargs.setdefault("limit", 49)
         self.xAngle = kwargs.setdefault("xAngle", 0)
         self.zAngle = kwargs.setdefault("zAngle", 0)
         self.imageRatio = kwargs.setdefault("imageRatio", 1)
@@ -55,11 +59,8 @@ class RiemannIteration():
 
         self.contourColours = myColour.get_palette(self.palette)
 
-        self.defaultColour = [0x80,0x80,0x80]
         self.lineColour = [0x60,0x60,0x60]
         self.ABSURD_ITER = 10000
-        self.LIMIT = 49 #test whether heading for infinity
-
         self.MESSAGES = ["Look out kid, it's something you did"]
 
     def getContourColour(self, i):
@@ -102,7 +103,7 @@ class RiemannIteration():
             for self.yPixel in range(ySize):
                 #Initialise pixel
                 hypSq = x*x + y*y
-                colour = self.defaultColour
+                colour = self.defColour
                 #Is it outside unit circle?
                 if hypSq > 1:
                     self.iArray[self.yPixel, self.xPixel] = colour
@@ -118,7 +119,7 @@ class RiemannIteration():
                     colour = self.iterate(self.xSeed, self.ySeed,
                                           xMap, yMap,
                                           self.setColour,
-                                          self.maxIter, self.LIMIT)
+                                          self.maxIter, self.limit)
                 #end_if
                 self.iArray[(self.ySize -1 -self.yPixel), self.xPixel] = colour
                 y += yIncr
@@ -145,7 +146,7 @@ class RiemannIteration():
                       greatCircle = True
         return x, y, greatCircle
 
-    def iterate(self, x1, y1, x2, y2, colour, maxIter, limit, colours):
+    def iterate(self, x1, y1, x2, y2, colour, maxIter, limit):
         return self.defaultColour
 
     def save_image(self, image):
@@ -168,7 +169,7 @@ class MbrotRIter(RiemannIteration):
         for i in range(maxIter):
             #Compute:
             #  determine what colour the pixel should have
-            var1 = var1.mult_complex(var1).minus(var2)
+            var1 = var1.mult_complex(var1).plus(var2)
             #if too large:
             if var1.abs_val() > limit:
                 colour = colours[i%len(colours)]
@@ -179,28 +180,27 @@ class MbrotRIter(RiemannIteration):
     ------------------------------------------------------------
     """
     #Old version
-    def iterate(self, x1, y1, x2, y2, colour, maxIter, limit, colours):
+    def iterate(self, x1, y1, x2, y2, colour, maxIter, limit):
         x_sq = x1*x1
         y_sq = y1*y1
         d_sq = x_sq + y_sq
         for i in range(maxIter):
             #compute
             y1 = x1 * y1
-            y1 = y1 + y1 - y2
-            x1 = x_sq - y_sq - x2
+            y1 = y1 + y1 + y2
+            x1 = x_sq - y_sq + x2
             x_sq = x1*x1
             y_sq = y1*y1
             d_sq = x_sq + y_sq
             #test
-            too_large = d_sq > limit
-            if too_large:
+            if d_sq > limit:
                 colour = super().getContourColour(i)
                 break
         #end_for_i
         return colour
         
 class MbrotRRealPower(RiemannIteration):
-    #Allows choice of value for power in 'z := z**power - c'
+    #Allows choice of value for power in 'z := z**power + c'
 
     def __init__(self, **kwargs):
         self.zPower = kwargs.setdefault("zPower", 2)
@@ -212,7 +212,7 @@ class MbrotRRealPower(RiemannIteration):
         for i in range(maxIter):
             #Compute:
             #  determine what colour the pixel should have
-            var1 = var1.power_dm(self.zPower).minus(var2)
+            var1 = var1.power_dm(self.zPower).plus(var2)
             #if too large:
             if var1.abs_val() > limit:
                 colour = super().getContourColour(i)
@@ -228,6 +228,6 @@ if __name__ == "__main__":
     if tc==1:
         myIter = MbrotRIter(xAngle=-90, zAngle=0, palette = "3CAL_0")
     if tc==2:
-        myIter = MbrotRRealPower(xAngle=40, zAngle=-70, zPower=2.2,\
+        myIter = MbrotRRealPower(xAngle=40, zAngle=70, zPower=2.2,\
                                     maxIter=60, palette = "9BL_GR")
     myIter.run()

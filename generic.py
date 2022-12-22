@@ -28,6 +28,11 @@ Rev 2,2 - 12 Dec 22
     * Parameterised filename
 Rev 2.3 - 14 Dec 22
     * Adds speculative class MagModel1
+Rev 2.4 - 21 Dec 22
+    * Reversed sign in Julia/Mandelbrot function
+    * That function now also returns |z|*2, this is an optimisation
+    * Mandelbrot class iteration contains nascent alternative contour-colouring 
+      mechanism; Generic class has a button to toggle this on and off.
 @author: Owner
 (Many thanks to Karl-Heinz Becker and Michael Doerffler)
 """
@@ -41,6 +46,7 @@ from tkinter import Tk, Frame, Label, StringVar, Entry, Button, E, W
 from PIL import Image
 import myColour
 from myMathOO import ComplexVar
+from math import log
 #
 # Iterate ??
 #
@@ -196,6 +202,7 @@ class GenIteration():
         #Further, there is a facility to set the seed value for z.
         self.moreButton["state"] = "disable"
         self.contourInputActive = True
+        self.renormalise = False
         self.currentRow += 1
 
         self.currentColumn = 0
@@ -313,6 +320,10 @@ class GenIteration():
         self.ySeedEntry.insert(0, str(self.ySeed))
         self.ySeedEntry.grid(row=self.currentRow, column=self.currentColumn)
 
+        self.currentColumn += 1
+        self.renButton = Button(self.frame, text="R", \
+                                 width=6, command=self.toggle_ren)
+        self.renButton.grid(row=self.currentRow, column=self.currentColumn)
 
     def change_set_col(self):
         newColour = self.setColText.get()
@@ -373,6 +384,15 @@ class GenIteration():
                 self.messageText.set(self.MESSAGES[5])
         else:
             self.messageText.set(self.MESSAGES[5])
+
+    def toggle_ren(self):
+        if self.renormalise == False:
+            self.renormalise = True
+            self.renButton.config(relief="sunken")
+        else:
+            self.renormalise = False
+            self.renButton.config(relief="raised")
+        print("ren", self.renormalise)
 
     def getContourColour(self, i):
         if self.contourInputActive == True:
@@ -493,29 +513,29 @@ class Julia(GenIteration):
         0.7454054, 0.1130063
         0.745428, 0.113009
     """
-    title = "Julia:  z0 = x, iy;  z := z**2 - c;  c fixed"
+    title = "Julia:  z0 = x, iy;  z := z**2 + c;  c fixed"
     #It is possible to change the initial "seed" value of c
     #via the generic GUI
     
     def iterate(self, cReal, cImag, zReal, zImag, colour, maxIter, limit):
         for i in range(self.maxIter):
             #Compute next z value
-            zReal, zImag = self.function(zReal, zImag, cReal, cImag)
+            zReal, zImag, rSq = self.function(zReal, zImag, cReal, cImag)
             #Test
-            if (zReal*zReal + zImag*zImag) > limit:
+            if rSq > limit:
                 colour = self.getContourColour(i)
                 break
         #end_for_i
         return colour
 
     def function(self, x, y, cr, ci):
-        #Compute z**2 - c
+        #Compute z**2 + c
         xSq = x*x
         ySq = y*y
         y = x*y
-        y = y + y - ci
-        x = xSq - ySq - cr
-        return x, y
+        y = y + y + ci
+        x = xSq - ySq + cr
+        return x, y, (xSq + ySq)
 
 class Mandelbrot(GenIteration):
     """ 
@@ -523,14 +543,14 @@ class Mandelbrot(GenIteration):
     Mandelbrot iteration
     @author: Owner
     """    
-    title = "Mandelbrot:  z0 = 0;  z := z**2 - c;  c = (x, iy)"
+    title = "Mandelbrot:  z0 = 0;  z := z**2 + c;  c = (x, iy)"
     #It is possible to change the initial "seed" value of z0 
     #via the generic GUI
     
     def __init__(self, master, **kwargs):
         kwargs.setdefault("seed", [0, 0])
-        kwargs.setdefault("xStart", -1)
-        kwargs.setdefault("xEnd", 2)
+        kwargs.setdefault("xStart", -2)
+        kwargs.setdefault("xEnd", 1)
         kwargs.setdefault("yStart", -1.125)
         kwargs.setdefault("imageRatio", 0.75)
         
@@ -539,22 +559,38 @@ class Mandelbrot(GenIteration):
     def iterate(self, zReal, zImag, cReal, cImag, colour, maxIter, limit):
         for i in range(self.maxIter):
             #Compute next z value
-            zReal, zImag = self.function(zReal, zImag, cReal, cImag)
+            zReal, zImag, rSq = self.function(zReal, zImag, cReal, cImag)
             #Test
-            if (zReal*zReal + zImag*zImag) > limit:
-                colour = self.getContourColour(i)
+            if rSq > limit:
+                index = i
+                if self.renormalise == True:
+                    #I have not yet understood what this messing with logs is 
+                    #about:
+                    #[increase accuracy by iterating again, if required
+                    #zReal, zImag = self.function(zReal, zImag, cReal, cImag)]
+                    #then:
+                    #temp = log(zReal*zReal + zImag*zImag)
+                    #temp = i + 1 - log(temp/log(limit), 2)
+                    #
+                    #iterationFactor = temp/maxIter???
+                    #
+                    #But you could simply do the following:
+                    #Temporarily, so that the program runs here...
+                    iterationFactor = i/maxIter
+                    index = int(iterationFactor*len(self.contourColours))
+                colour = self.getContourColour(index)
                 break
         #end_for_i
         return colour
 
     def function(self, x, y, cr, ci):
-        #Compute z**2 - c
+        #Compute z**2 + c
         xSq = x*x
         ySq = y*y
         y = x*y
-        y = y + y - ci
-        x = xSq - ySq - cr
-        return x, y
+        y = y + y + ci
+        x = xSq - ySq + cr
+        return x, y, (xSq + ySq)
 
 
 class MbrotRealPower(GenIteration):
@@ -580,7 +616,7 @@ class MbrotRealPower(GenIteration):
         var2 = ComplexVar(cReal, cImag)
         for i in range(maxIter):
             #Compute next z value
-            var1 = var1.power_dm(self.zPower).minus(var2)
+            var1 = var1.power_dm(self.zPower).plus(var2)
             #Test
             if var1.abs_val() > limit:
                 colour = self.getContourColour(i)
@@ -678,14 +714,17 @@ class MagModel1(GenIteration):
 MAIN
 """
 if __name__ == "__main__":
-    current = "mag1"
+    current = "j"
     root = Tk()
     if current == "g":
         myGUI = GenIteration(root)
     if current == "j":
         myGUI = Julia(root, seed=[0.745405, 0.113006], palette="3CAL_0")
     if current == "m":
-        myGUI = Mandelbrot(root, xStart=-1, xEnd=2, yStart=-1.125)
+        myGUI = Mandelbrot(root, palette="9BL_GR")
+    if current == "m2":
+        myGUI = Mandelbrot(root, xStart=0.6258, xEnd=0.6264, yStart=0.40332, 
+                           xSize=600, palette="10CAL_10", maxIter=550)
     if current == "n":
         myGUI = NCubeRoot1(root, xSize=800, maxIter=12)
     if current == "p":
