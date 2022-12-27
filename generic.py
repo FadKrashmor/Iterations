@@ -425,15 +425,15 @@ class GenIteration():
             #Temporarily, so that the program runs here...
             colour = self.infColour.copy()
             remaining = maxIter - i
-            if remaining < self.REDOFFSET:
-                #so that we get some bright pixels next to the set
-                colour[0] = 256 - remaining
+#            if remaining < self.REDOFFSET:
+#                #so that we get some bright pixels next to the set
+#                colour[0] = 256 - remaining
+#            else:
+            if maxIter < 256:
+                colour[0] = (colour[0] + i)
             else:
-                if maxIter < 256:
-                    colour[0] = (colour[0] + i)
-                else:
-                    iterationFactor = int((i)*256/maxIter)
-                    colour[0] = (colour[0] + iterationFactor)
+                iterationFactor = int((i)*256/maxIter)
+                colour[0] = (colour[0] + iterationFactor)
         else: 
             #Alternative method of cycling colour palette:
             if self.contourInputActive == True:
@@ -624,7 +624,7 @@ class MbrotRealPower(GenIteration):
     Mandelbrot iteration, variable power
     @author: Owner
     """
-    title = "Mandelbrot++:  z0 = 0;  z := z**power - c;  c = (x, iy)"
+    title = "Mandelbrot++:  z0 = 0;  z := z**power + c;  c = (x, iy)"
 
     def __init__(self, master, **kwargs):
         self.zPower = kwargs.setdefault("zPower", 3)
@@ -741,7 +741,7 @@ class MagModel1(GenIteration):
 MAIN
 """
 if __name__ == "__main__":
-    current = "j"
+    current = "mag1"
     root = Tk()
     if current == "g":
         myGUI = GenIteration(root)
@@ -755,7 +755,7 @@ if __name__ == "__main__":
     if current == "n":
         myGUI = NCubeRoot1(root, xSize=800, maxIter=12)
     if current == "p":
-        myGUI = MbrotRealPower(root, zPower=5, maxIter=60, limit=49)
+        myGUI = MbrotRealPower(root, zPower=3.85, maxIter=60, limit=49)
     if current == "mag1":
         myGUI = MagModel1(root, maxIter=80, xSize=400, palette="10CAL_10")
 

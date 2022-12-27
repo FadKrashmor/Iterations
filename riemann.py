@@ -18,6 +18,8 @@ Parameters can be set when calling the program.
 Rev 1.1 - 22 Dec 22
     * Reversed sign in function
     * Parameterised default colour and limit (square of escape radius)
+Rev 1.2 -26 Dec 22
+    * Parameterised file directory and file name for image
 @author: Owner
 (Many thanks to Karl-Heinz Becker and Michael Doerffler)
 """
@@ -37,7 +39,7 @@ class RiemannIteration():
         self.seed = kwargs.setdefault("seed", [0, 0])
         self.setColour = kwargs.setdefault("setColour", [0xD0,0xFF,0xFF])
         self.infColour = kwargs.setdefault("infColour", [0x03,0x03,0x03])
-        self.defColour = kwargs.setdefault("defColour", [0x80,0x80,0x80])
+        self.defColour = kwargs.setdefault("defColour", [0x00,0x00,0x00])
         self.palette = kwargs.setdefault("palette", "3TEST")
         self.maxIter = kwargs.setdefault("maxIter", 100)
         self.limit = kwargs.setdefault("limit", 49)
@@ -48,7 +50,9 @@ class RiemannIteration():
         self.showGtCircles = kwargs.setdefault("lines", True)
         self.saveImage = kwargs.setdefault("saveImage", True)
         self.showImage = kwargs.setdefault("showImage", True)
-
+        self.fileDir = kwargs.setdefault("fileDir", "../images")
+        self.fileName = kwargs.setdefault("fileName", "temprimage")
+        
         self.set_matrices(self.xAngle+90, self.zAngle)
             #The values for the matrices mean that the angles can be  
             #understood as latitude and longitude (increasing Westwards)
@@ -80,7 +84,7 @@ class RiemannIteration():
 
         #Initialise array
         self.iArray = ones((self.ySize, self.xSize, 3), dtype=uint8)
-        
+
         #Perform iteration
         self.traverse_array(self.xSize, self.ySize)
         
@@ -147,11 +151,11 @@ class RiemannIteration():
         return x, y, greatCircle
 
     def iterate(self, x1, y1, x2, y2, colour, maxIter, limit):
-        return self.defaultColour
+        return self.defColour
 
     def save_image(self, image):
         try:
-            image.save("../images/temprimage.png", format="PNG")
+            image.save(self.fileDir + "/" + self.fileName + ".png", format="PNG")
         except:
             print("Couldn't save file")
 
@@ -222,12 +226,25 @@ class MbrotRRealPower(RiemannIteration):
 
 
 if __name__ == "__main__":
-    tc=2
+    tc=3
     if tc==0:
         myIter = RiemannIteration()
+        myIter.run()
     if tc==1:
-        myIter = MbrotRIter(xAngle=-90, zAngle=0, palette = "3CAL_0")
+        myIter = MbrotRIter(xAngle=-0, zAngle=0, palette = "3CAL_0")
+        myIter.run()
     if tc==2:
         myIter = MbrotRRealPower(xAngle=40, zAngle=70, zPower=2.2,\
                                     maxIter=60, palette = "9BL_GR")
-    myIter.run()
+        myIter.run()
+    if tc==3:
+        xAngle=-71
+        zAngle=0
+        while xAngle < 30:
+            myIter =MbrotRIter(xAngle=xAngle, zAngle=zAngle, palette="9BL_GR",        
+                               fileDir = "../images/series", 
+                               fileName="Lat" + str(xAngle) 
+                                       + "Lon" + str(zAngle), showImage=False)
+            
+            myIter.run()
+            xAngle += 1
