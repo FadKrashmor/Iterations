@@ -12,6 +12,10 @@ Rev 1.2 - 12 Dec 22
     Correction to FeigPtoFofP, minor improvements.
 Rev 1.3 - 18 Dec 22
     Adds text to plot. Requires subclasses to define their own title.
+Rev 1.4 - 03 Jan 23
+    FeigPtoFofP has correct text label in plot. Occasioned a quite large 
+    reorganisation ...this needs further development actually: ¿a case for dual 
+    inheritance?
 @author: Owner
 """
 
@@ -45,10 +49,16 @@ class Feigenbaum():
         #the same as the number of x-pixels.
         self.xSize = kwargs.setdefault("xSize", 600)
         self.ySize = kwargs.setdefault("ySize", 400)
-        self.kRes = kwargs.setdefault("kRes", self.xSize) 
         self.fname = kwargs.setdefault("fname", "../images/tempfplot.png")
         self.savePlot = kwargs.setdefault("savePlot", False)
+        self.xLabel = kwargs.setdefault("xLabel", "feedback k value")
+        self.yLabel = kwargs.setdefault("yLabel", "p value")
+
         self.myArray = ones((self.ySize, self.xSize, 3), dtype=uint8)
+
+        self.kRes = self.xSize
+        self.xMin = self.kStart
+        self.xMax = self.kEnd
         self.set_scales()
         self.traverse_k()
 
@@ -59,8 +69,8 @@ class Feigenbaum():
         #Start and end of scales form the extent...
         extent = [self.xMin, self.xMax, self.yMin, self.yMax]
         title(self.title)
-        xlabel("feedback k value")
-        ylabel("p value")
+        xlabel(self.xLabel)
+        ylabel(self.yLabel)
         #Draw the image, wherever you show your plots
         ax.imshow(self.myArray, interpolation='nearest', extent=extent)
         ax.set_aspect('auto')
@@ -74,13 +84,14 @@ class Feigenbaum():
     def image(self, **kwargs):
         self.xSize = kwargs.setdefault("xSize", 800)
         self.ySize = kwargs.setdefault("ySize", 400)
-        self.kRes = kwargs.setdefault("kRes", 0) 
         self.fname = kwargs.setdefault("fname", "../images/tempfimage.png")
         self.saveImage = kwargs.setdefault("saveImage", False)
-        if self.kRes == 0:
-            self.kRes = self.xSize
+
         self.myArray = ones((self.ySize, self.xSize, 3), dtype=uint8)
         
+        self.kRes = self.xSize
+        self.xMin = self.kStart
+        self.xMax = self.kEnd
         self.set_scales()
         self.traverse_k()
 
@@ -93,10 +104,7 @@ class Feigenbaum():
             except:
                 print("Couldn't save file", self.fname)
 
-    def set_scales(self):
-        self.xMin = self.kStart
-        self.xMax = self.kEnd
-        
+    def set_scales(self):        
         #Make start less than end
         if self.xMax < self.xMin:
             self.xMin, self.xMax = self.xMax, self.xMin
@@ -181,19 +189,62 @@ class FeigPtoFofP(Feigenbaum):
         self.xMax = kwargs.setdefault("xMax", 1.4)
         super().__init__(**kwargs)
 
-    def set_scales(self):
-        #Make start less than end
-        if self.xMax < self.xMin:
-            self.xMin, self.xMax = self.xMax, self.xMin
-        if self.yMax < self.yMin:
-            self.yMin, self.yMax = self.yMax, self.yMin
-            
-        self.xRange = self.xMax-self.xMin
-        self.yRange = self.yMax-self.yMin
+    def plot(self, **kwargs):
+        #"kRes"(~olution) gives the number of increments to the k-value within 
+        #bounds set.
+        self.xSize = kwargs.setdefault("xSize", 600)
+        self.ySize = kwargs.setdefault("ySize", 600)
+        self.kRes = kwargs.setdefault("kRes", 400)
+        self.fname = kwargs.setdefault("fname", "../images/tempfplot.png")
+        self.savePlot = kwargs.setdefault("savePlot", False)
+        self.xLabel = kwargs.setdefault("xLabel", "p value")
+        self.yLabel = kwargs.setdefault("yLabel", "f(p)")
+
+        self.myArray = ones((self.ySize, self.xSize, 3), dtype=uint8)
+
+        self.set_scales()
+        self.traverse_k()
+
+        #Create a figure of the right size with one axes that takes up the full 
+        #figure
+        px = 1/rcParams['figure.dpi']  #pixel in inches
+        fig, ax = subplots(figsize=(self.xSize*px, self.ySize*px))
+        #Start and end of scales form the extent...
+        extent = [self.xMin, self.xMax, self.yMin, self.yMax]
+        title(self.title)
+        xlabel(self.xLabel)
+        ylabel(self.yLabel)
+        #Draw the image, wherever you show your plots
+        ax.imshow(self.myArray, interpolation='nearest', extent=extent)
+        ax.set_aspect('auto')
+        #Save the image
+        if self.savePlot == True:
+            try:
+                savefig(self.fname, format="PNG")
+            except:
+                print("Couldn't save file", self.fname)
+
+    def image(self, **kwargs):
+        self.xSize = kwargs.setdefault("xSize", 600)
+        self.ySize = kwargs.setdefault("ySize", 600)
+        self.kRes = kwargs.setdefault("kRes", 400)
+        self.fname = kwargs.setdefault("fname", "../images/tempfimage.png")
+        self.saveImage = kwargs.setdefault("saveImage", False)
+
+        self.myArray = ones((self.ySize, self.xSize, 3), dtype=uint8)
         
-        self.xIncr = self.xRange/self.xSize
-        self.yIncr = self.yRange/self.ySize
-        
+        self.set_scales()
+        self.traverse_k()
+
+        #Display the result using PIL
+        im = Image.fromarray(self.myArray)
+        im.show()
+        if self.saveImage == True:
+            try:
+                im.save(self.fname, format="PNG")
+            except:
+                print("Couldn't save file", self.fname)
+
     def iterate(self, k):
         p = self.p0
         for i in range(self.maxIter):
@@ -214,7 +265,7 @@ class FeigPtoFofP(Feigenbaum):
 
         
 if __name__=="__main__":
-    tc = 2
+    tc = 5
     if tc==0:
         f=Feigenbaum(kStart=1.8, maxIter=512)
         f.plot(savePlot=True, xSize=1000, ySize=700)

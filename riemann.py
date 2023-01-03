@@ -226,7 +226,7 @@ class MbrotRRealPower(RiemannIteration):
 
 
 if __name__ == "__main__":
-    tc=3
+    tc=0
     if tc==0:
         myIter = RiemannIteration()
         myIter.run()
@@ -237,14 +237,3 @@ if __name__ == "__main__":
         myIter = MbrotRRealPower(xAngle=40, zAngle=70, zPower=2.2,\
                                     maxIter=60, palette = "9BL_GR")
         myIter.run()
-    if tc==3:
-        xAngle=-71
-        zAngle=0
-        while xAngle < 30:
-            myIter =MbrotRIter(xAngle=xAngle, zAngle=zAngle, palette="9BL_GR",        
-                               fileDir = "../images/series", 
-                               fileName="Lat" + str(xAngle) 
-                                       + "Lon" + str(zAngle), showImage=False)
-            
-            myIter.run()
-            xAngle += 1

@@ -11,9 +11,9 @@ Rev 1.0 - 21 Nov 22
       is pre-selected).
     * Allows for an (contextual) "seed value"" to be set.
     * Reports runtime, and other info to console.
-    * Can display result of iteration to screen and write to file (.png) 
+    * Can display result of iteration to screen and write to file (.png) .
 Rev 1.1 - 22 Nov 22
-    * Initialisation effected by keyword arguments
+    * Initialisation effected by keyword arguments.
 Rev 1.2 - 24 Nov 22
     * Streamlining, function z2_minus_c() now generic.
 Rev 1.3 - 29 Nov 22
@@ -25,17 +25,20 @@ Rev 2.1 - 07 Dec 22
     * LIMIT now a parameter. (e.g. escape radius for Mandelbrot iteration).
     * Adds an iteration for cube roots of one (Newton's method).
 Rev 2,2 - 12 Dec 22
-    * Parameterised filename
+    * Parameterised filename.
 Rev 2.3 - 14 Dec 22
-    * Adds speculative class MagModel1
+    * Adds speculative class MagModel1.
 Rev 2.4 - 21 Dec 22
-    * Reversed sign in Julia/Mandelbrot function
-    * That function now also returns |z|*2, this is an optimisation
+    * Reversed sign in Julia/Mandelbrot function.
+    * That function now also returns |z|*2, this is an optimisation.
     * Mandelbrot class iteration contains nascent alternative contour-colouring 
       mechanism; Generic class has a button to toggle this on and off.
 Rev 2.5 - 24 Dec 22
-    * The developing contour-colouring mechanism is now in get_contour_colour
-    * More checks on xStart/xEnd sizes
+    * The developing contour-colouring mechanism is now in get_contour_colour.
+    * More checks on xStart/xEnd sizes.
+Rev 2.6 - 31 Dec 22
+    * Requires contour palette to be at least 3 long.
+    * Adds classes Mandelbar and Burning(ship).
 @author: Owner
 (Many thanks to Karl-Heinz Becker and Michael Doerffler)
 """
@@ -49,7 +52,6 @@ from tkinter import Tk, Frame, Label, StringVar, Entry, Button, E, W
 from PIL import Image
 import myColour
 from myMathOO import ComplexVar
-#from math import log
 #
 # Iterate ??
 #
@@ -85,10 +87,12 @@ class GenIteration():
         
         self.defaultColour = [0x80,0x80,0x80]
         #gold=FFD700, AntiqueWhite=FAEBD7
+        if len(self.palette) < 3:
+            self.palette = ""
         self.contourColours = myColour.get_palette(self.palette)
         self.contourInputActive = False
         self.redField = False
-        self.REDOFFSET = 64
+        self.REDOFFSET = 0
 
         self.ABSURD_ITER = 10000
 
@@ -227,6 +231,7 @@ class GenIteration():
             self.redButton.config(relief="raised")
         print("red!", self.redField)
         self.contourInputActive = True
+        self.contourSmooth = False
         self.currentRow += 1
 
         self.currentColumn = 0
@@ -407,42 +412,37 @@ class GenIteration():
             self.messageText.set(self.MESSAGES[5])
 
     def get_contour_colour(self, i, maxIter):
+        colour = self.infColour #Default case
+        #
         if self.redField == True:
-            #I have not yet understood what this messing with logs is 
-            #about:
-            #[increase accuracy by iterating again, if required
-            #zReal, zImag = self.function(zReal, zImag, cReal, cImag)]
-            #then:
-            #temp = log(zReal*zReal + zImag*zImag)
-            #temp = i + 1 - log(temp/log(limit), 2)
-            #
-            #iterationFactor = temp/maxIter???
-            #
-            #But you could simply do the following:
-            #iterationFactor = i/maxIter
-            #index = int(iterationFactor*len(self.contourColours))
-            #
-            #Temporarily, so that the program runs here...
+            """
+            This gives continuously varying monochrome red addition to the
+            colour specified as infColour.
+            """
             colour = self.infColour.copy()
             remaining = maxIter - i
-#            if remaining < self.REDOFFSET:
-#                #so that we get some bright pixels next to the set
-#                colour[0] = 256 - remaining
-#            else:
-            if maxIter < 256:
-                colour[0] = (colour[0] + i)
+            if remaining < self.REDOFFSET:
+                #so that we get some bright pixels next to the set
+                colour[0] = 256 - remaining
+                colour[1] = 256 - remaining
             else:
-                iterationFactor = int((i)*256/maxIter)
-                colour[0] = (colour[0] + iterationFactor)
-        else: 
-            #Alternative method of cycling colour palette:
+                if maxIter < 256:
+                    colour[0] = (colour[0] + i)
+                else:
+                    iterationFactor = int((i)*256/maxIter)
+                    colour[0] = (colour[0] + iterationFactor)
+        #
+        else:
             if self.contourInputActive == True:
                 if i > self.contourStart:
+                    """
+                    Here we cycle around the palette as many times as required.
+                    """
+                    #   But you could simply do the following to get one of 
+                    #   each colour:
+                    #   iterationFactor = i/maxIter
+                    #   i = int(iterationFactor*len(self.contourColours))
                     colour = self.contourColours[i%len(self.contourColours)]
-                else:
-                    colour = self.infColour
-            else:
-                colour = self.infColour
         return colour
 
     def create_image(self):        
@@ -542,8 +542,8 @@ class GenIteration():
             image.save(self.fname, format="PNG")
         except:
             print("Couldn't save file")
-                
-                   
+
+
 class Julia(GenIteration):
     """ 
     Date: 21 Nov 22
@@ -594,7 +594,7 @@ class Mandelbrot(GenIteration):
         kwargs.setdefault("xEnd", 1)
         kwargs.setdefault("yStart", -1.125)
         kwargs.setdefault("imageRatio", 0.75)
-        
+        kwargs.setdefault("palette", "5CAL_5")
         super().__init__(master, **kwargs)
         
     def iterate(self, zReal, zImag, cReal, cImag, colour, maxIter, limit):
@@ -633,7 +633,6 @@ class MbrotRealPower(GenIteration):
         kwargs.setdefault("xEnd", 1.6)
         kwargs.setdefault("yStart", -1.2)
         kwargs.setdefault("imageRatio", 0.75)
-        
         super().__init__(master, **kwargs)
         
     def iterate(self, zReal, zImag, cReal, cImag, colour, maxIter, limit):
@@ -649,6 +648,65 @@ class MbrotRealPower(GenIteration):
         #end_for_i
         return colour
 
+
+class Mandelbar(Mandelbrot):
+    """ 
+    Date: 31 Dec 22
+    Mandelbar iteration
+    @author: Owner
+    """
+    title = "Mandelbar:  z := (z_conj)**2 + c;  c = (x, iy)"
+    def __init__(self, master, **kwargs):
+        kwargs.setdefault("xStart", -2.6)
+        kwargs.setdefault("xEnd", 2.2)
+        kwargs.setdefault("yStart", -1.8)
+        kwargs.setdefault("imageRatio", 0.75)
+        super().__init__(master, **kwargs)
+    
+    def function(self, x, y, cr, ci):
+        #Compute (z_conjugate)**2 + c
+        y = -y
+        xSq = x*x
+        ySq = y*y
+        y = x*y
+        y = y + y + ci
+        x = xSq - ySq + cr
+        return x, y, (xSq + ySq)
+    
+
+class Burning(Mandelbrot):
+    """ 
+    Date: 31 Dec 22
+    Burning Ship iteration
+    @author: Owner
+    """
+    title = "Burning Ship:  z := (|R(z)| + i|I(z)|)**2 + c;  c = (x, iy)"
+    def __init__(self, master, **kwargs):
+        kwargs.setdefault("xStart", -2.8)
+        kwargs.setdefault("xEnd", 2)
+        kwargs.setdefault("yStart", -2.3)
+        kwargs.setdefault("imageRatio", 0.75)
+        kwargs.setdefault("maxIter", 256)   
+        kwargs.setdefault("setColour", [0x00,0x00,0x00])   
+        #Or try xStart=-1.85, xEnd=-1.65, yStart=-0.1 (in monochrome?)
+        #...or perhaps with 242? contours and...
+        #kwargs.setdefault("infColour", [0x00,0x10,0x30])
+        super().__init__(master, **kwargs)
+    
+    def function(self, x, y, cr, ci):
+        #Compute (|R(z)| + i|I(z)|)**2 + c
+        if x < 0:
+            x = -x
+        if y < 0:
+            y = -y
+        xSq = x*x
+        ySq = y*y
+        y = x*y
+        y = y + y + ci
+        x = xSq - ySq + cr
+        return x, y, (xSq + ySq)
+
+
 class NCubeRoot1(GenIteration):
     """
     Date: 07 Dec 22
@@ -662,7 +720,6 @@ class NCubeRoot1(GenIteration):
         kwargs.setdefault('palette', '4CAL_4')
         kwargs.setdefault('maxIter', 16)
         kwargs.setdefault("limit", 0.0025)
-
         super().__init__(master, **kwargs)
 
     def belongs_to_root(self, x, y, limit):
@@ -716,7 +773,6 @@ class MagModel1(GenIteration):
         kwargs.setdefault("imageRatio", 1)
         kwargs.setdefault("maxIter", 64)
         kwargs.setdefault("xSize", 400)
-        
         super().__init__(master, **kwargs)
         
     def iterate(self, zReal, zImag, cReal, cImag, colour, maxIter, limit):
@@ -741,17 +797,22 @@ class MagModel1(GenIteration):
 MAIN
 """
 if __name__ == "__main__":
-    current = "mag1"
+    current = "ms"
     root = Tk()
     if current == "g":
         myGUI = GenIteration(root)
     if current == "j":
-        myGUI = Julia(root, seed=[-0.745405, -0.113006], palette="3CAL_0")
+        myGUI = Julia(root, seed=[-0.745405, -0.113006], palette="3CAL_0",
+                      xStart=0, xEnd=0.02, yStart=0, maxIter=256)
     if current == "m":
-        myGUI = Mandelbrot(root, palette="9BL_GR")
+        myGUI = Mandelbrot(root, palette="9BL_GR", limit=4, xSize=400)
     if current == "m2":
         myGUI = Mandelbrot(root, xStart=0.6258, xEnd=0.6264, yStart=0.40332, 
                            xSize=600, palette="10CAL_10", maxIter=550)
+    if current == "mb":
+        myGUI = Mandelbar(root, palette="9BL_GR")
+    if current == "ms":
+        myGUI = Burning(root, infColour=[0x10,0x03,0x10], xSize=400)
     if current == "n":
         myGUI = NCubeRoot1(root, xSize=800, maxIter=12)
     if current == "p":
