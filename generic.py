@@ -39,6 +39,8 @@ Rev 2.5 - 24 Dec 22
 Rev 2.6 - 31 Dec 22
     * Requires contour palette to be at least 3 long.
     * Adds classes Mandelbar and Burning(ship).
+Rev 3.0 - 03 Jan 23
+    * New Year, new Rev. Making doubly sure that my laptops are aligned.
 @author: Owner
 (Many thanks to Karl-Heinz Becker and Michael Doerffler)
 """
@@ -805,14 +807,14 @@ if __name__ == "__main__":
         myGUI = Julia(root, seed=[-0.745405, -0.113006], palette="3CAL_0",
                       xStart=0, xEnd=0.02, yStart=0, maxIter=256)
     if current == "m":
-        myGUI = Mandelbrot(root, palette="9BL_GR", limit=4, xSize=400)
+        myGUI = Mandelbrot(root, palette="9BL_GR", limit=4)
     if current == "m2":
         myGUI = Mandelbrot(root, xStart=0.6258, xEnd=0.6264, yStart=0.40332, 
                            xSize=600, palette="10CAL_10", maxIter=550)
     if current == "mb":
         myGUI = Mandelbar(root, palette="9BL_GR")
     if current == "ms":
-        myGUI = Burning(root, infColour=[0x10,0x03,0x10], xSize=400)
+        myGUI = Burning(root, infColour=[0x10,0x03,0x10])
     if current == "n":
         myGUI = NCubeRoot1(root, xSize=800, maxIter=12)
     if current == "p":
