@@ -41,6 +41,9 @@ Rev 2.6 - 31 Dec 22
     * Adds classes Mandelbar and Burning(ship).
 Rev 3.0 - 03 Jan 23
     * New Year, new Rev. Making doubly sure that my laptops are aligned.
+Rev 3.1 -04 Jan 23
+    * Camel case vars in NCubeRoot1, nextafter now from numpy.
+    * Class NComplexRoot added.
 @author: Owner
 (Many thanks to Karl-Heinz Becker and Michael Doerffler)
 """
@@ -49,9 +52,9 @@ if not "../modules" in path:
     path.append('../modules')
 import numpy as np
 from datetime import datetime
-from scipy import nextafter
 from tkinter import Tk, Frame, Label, StringVar, Entry, Button, E, W
 from PIL import Image
+from math import pi
 import myColour
 from myMathOO import ComplexVar
 #
@@ -744,20 +747,76 @@ class NCubeRoot1(GenIteration):
         rootFound = 0
         for i in range(maxIter):
             if (x==0) and (y==0):
-                x = nextafter(0,1)
+                x = np.nextafter(0,1)
                 continue
-            x_sq, y_sq, d_sq = x*x, y*y, (x*x + y*y)
-            temp = 3*(d_sq*d_sq)
-            x_new = 2*x/3 + (x_sq - y_sq)/temp
-            y_new = 2*y/3 - 2*x*y/temp
-            rootFound = self.belongs_to_root(x_new, y_new, limit)
+            xSq, ySq, dSq = x*x, y*y, (x*x + y*y)
+            temp = 3*(dSq*dSq)
+            xNew = 2*x/3 + (xSq - ySq)/temp
+            yNew = 2*y/3 - 2*x*y/temp
+            rootFound = self.belongs_to_root(xNew, yNew, limit)
             if rootFound:
                 return self.get_contour_colour(i, maxIter)
-            x = x_new
-            y = y_new
+            x = xNew
+            y = yNew
         #end_for_i
         return colour
 
+
+class NComplexRoot(GenIteration):
+    """
+    Date: 04 Jan 23
+    Shows contours in the basins of attraction for the nth roots of one,
+    approached using Newton's method.
+    """
+    title = "Complex Root (Newton)"
+
+    def __init__(self, master, n, **kwargs):
+        self.TWOPI = 2*pi
+        self.power = n
+        self.testAngle = self.TWOPI/n
+        kwargs.setdefault('setColour', [0xFF,0x40,0x40])
+        kwargs.setdefault('palette', '4CAL_4')
+        kwargs.setdefault('maxIter', 20)
+        kwargs.setdefault('limit', 0.005)
+        super().__init__(master, **kwargs)
+        
+    def belongs_to_root(self, z, limit):
+        #Is it close to one of the roots? return 0 for no.
+        #(one value for limit is used for both tests (size and angle))
+        zPolar = z.cart_to_polar()
+        if abs(zPolar.val_r() - 1) < limit: #it's on the unit circle...
+            if abs(zPolar.val_angle()) < limit: #...and it's really one
+                return 1
+            else:
+                if zPolar.val_angle() < 0:
+                    zPolar = zPolar.add_angle(self.TWOPI)
+                for j in range(1, self.power):
+                    if abs(zPolar.val_angle() - j*self.testAngle) < limit:
+                        return j + 1
+        return 0
+    
+    def iterate(self, xSeed, ySeed, x, y, colour, maxIter, limit):
+        #Find roots of 1 using Newton's method
+        #Internally:
+        #   0: root not yet determined
+        #   1, 2, 3... for each respective root
+        rootFound = 0
+        z = ComplexVar(x, y)
+        for i in range(maxIter):
+            if (x==0) and (y==0):
+                break
+            try:
+                divisor = z.power_dm(self.power - 1).times(self.power)
+                zNew = z.minus(z.power_dm(self.power).add_real(-1).divide(divisor))
+            except ArithmeticError:
+                print("Arithmetic Error: x={}, y={}, i={}".format(x, y, i))
+                break
+            rootFound = self.belongs_to_root(zNew, limit)
+            if rootFound:
+                return self.get_contour_colour(i, maxIter)
+            z = zNew
+        #end_for_i
+        return colour
 
 class MagModel1(GenIteration):
     """ 
@@ -799,7 +858,7 @@ class MagModel1(GenIteration):
 MAIN
 """
 if __name__ == "__main__":
-    current = "ms"
+    current = "nz"
     root = Tk()
     if current == "g":
         myGUI = GenIteration(root)
@@ -817,6 +876,8 @@ if __name__ == "__main__":
         myGUI = Burning(root, infColour=[0x10,0x03,0x10])
     if current == "n":
         myGUI = NCubeRoot1(root, xSize=800, maxIter=12)
+    if current == "nz":
+        myGUI = NComplexRoot(root, 10, xSize=600, maxIter=12)
     if current == "p":
         myGUI = MbrotRealPower(root, zPower=3.85, maxIter=60, limit=49)
     if current == "mag1":

@@ -18,8 +18,16 @@ Parameters can be set when calling the program.
 Rev 1.1 - 22 Dec 22
     * Reversed sign in function
     * Parameterised default colour and limit (square of escape radius)
-Rev 1.2 -26 Dec 22
+Rev 1.2 - 26 Dec 22
     * Parameterised file directory and file name for image
+Rev 1.3 - 04 Jan 23
+    * Increased default size (to 500); default saveImage := False
+    * Name for function changed: get_contour_colour; it is now called by 
+      referring to self rather than super().
+    * Added class NRCubeRoot1 (copied from version in file "generic" - and 
+      modified, isn't that just the problem!)
+    * Added class NRComplexRoot, to show basins of attaction for the nth roots
+      of one.
 @author: Owner
 (Many thanks to Karl-Heinz Becker and Michael Doerffler)
 """
@@ -27,6 +35,7 @@ from datetime import datetime
 from numpy import ones, uint8
 from PIL import Image
 from sys import path
+from math import pi
 if not "../modules" in path:
     path.append('../modules')
 from myMatrices import matrix_3x3
@@ -46,9 +55,9 @@ class RiemannIteration():
         self.xAngle = kwargs.setdefault("xAngle", 0)
         self.zAngle = kwargs.setdefault("zAngle", 0)
         self.imageRatio = kwargs.setdefault("imageRatio", 1)
-        self.xSize = kwargs.setdefault("xSize", 400)
+        self.xSize = kwargs.setdefault("xSize", 500)
         self.showGtCircles = kwargs.setdefault("lines", True)
-        self.saveImage = kwargs.setdefault("saveImage", True)
+        self.saveImage = kwargs.setdefault("saveImage", False)
         self.showImage = kwargs.setdefault("showImage", True)
         self.fileDir = kwargs.setdefault("fileDir", "../images")
         self.fileName = kwargs.setdefault("fileName", "temprimage")
@@ -67,7 +76,7 @@ class RiemannIteration():
         self.ABSURD_ITER = 10000
         self.MESSAGES = ["Look out kid, it's something you did"]
 
-    def getContourColour(self, i):
+    def get_contour_colour(self, i):
         return self.contourColours[i%len(self.contourColours)]
 
     def set_matrices(self, xAngle, zAngle):
@@ -198,7 +207,7 @@ class MbrotRIter(RiemannIteration):
             d_sq = x_sq + y_sq
             #test
             if d_sq > limit:
-                colour = super().getContourColour(i)
+                colour = self.get_contour_colour(i)
                 break
         #end_for_i
         return colour
@@ -219,14 +228,126 @@ class MbrotRRealPower(RiemannIteration):
             var1 = var1.power_dm(self.zPower).plus(var2)
             #if too large:
             if var1.abs_val() > limit:
-                colour = super().getContourColour(i)
+                colour = self.get_contour_colour(i)
                 break
         #end_for_i
         return colour
 
 
+class NRCubeRoot1(RiemannIteration):
+    """
+    Date: 04 Jan 23
+    Shows contours in the basins of attraction for the cube roots of one,
+    approached using Newton's method.
+    """
+    title = "Cube Root (Newton)"
+
+    def __init__(self, **kwargs):
+        kwargs.setdefault('setColour', [0xFF,0x40,0x40])
+        kwargs.setdefault('palette', '4CAL_4')
+        kwargs.setdefault('maxIter', 16)
+        kwargs.setdefault('limit', 0.0025)
+        kwargs.setdefault('lines', False)
+        super().__init__(**kwargs)
+
+    def belongs_to_root(self, x, y, limit):
+        #given (x,y), is the point close to one of the cube roots of one?
+        #returns 0 if not; 1, 2 or 3 depending on which root is close
+        if ((x+0.5)**2 + (y+0.8660254)**2) < limit:
+            return 1
+        elif ((x+0.5)**2 + (y-0.8660254)**2) < limit:
+            return 2
+        elif ((x-1)**2 + y**2) < limit:
+            return 3
+        else:
+            return 0
+    
+    def iterate(self, xSeed, ySeed, x, y, colour, maxIter, limit):
+        # Find cube roots of 1 using Newton's method
+        # Internally:
+        #   0: root not yet determined
+        #   1, 2 or 3 for each respective root
+        rootFound = 0
+        for i in range(maxIter):
+            if (x==0) and (y==0):
+                break
+            try:
+                xSq, ySq, dSq = x*x, y*y, (x*x + y*y)
+                temp = 3*(dSq*dSq)
+                xNew = 2*x/3 + (xSq - ySq)/temp
+                yNew = 2*y/3 - 2*x*y/temp
+            except ArithmeticError:
+                print("Arithmetic Error: x={}, y={}, i={}".format(x, y, i))
+                break
+            rootFound = self.belongs_to_root(xNew, yNew, limit)
+            if rootFound:
+                return self.get_contour_colour(i)
+            x = xNew
+            y = yNew
+        #end_for_i
+        return colour
+
+
+class NRComplexRoot(RiemannIteration):
+    """
+    Date: 04 Jan 23
+    Shows contours in the basins of attraction for the nth roots of one,
+    approached using Newton's method.
+    """
+    title = "Complex Root (Newton)"
+
+    def __init__(self, n, **kwargs):
+        self.TWOPI = 2*pi
+        self.power = n
+        self.testAngle = self.TWOPI/n
+        kwargs.setdefault('setColour', [0xFF,0x40,0x40])
+        kwargs.setdefault('palette', '4CAL_4')
+        kwargs.setdefault('maxIter', 20)
+        kwargs.setdefault('limit', 0.005)
+        kwargs.setdefault('lines', False)
+        super().__init__(**kwargs)
+        
+    def belongs_to_root(self, z, limit):
+        #Is it close to one of the roots? return 0 for no.
+        #(one value for limit is used for both tests (size and angle))
+        zPolar = z.cart_to_polar()
+        if abs(zPolar.val_r() - 1) < limit: #it's on the unit circle...
+            if abs(zPolar.val_angle()) < limit: #...and it's really one
+                return 1
+            else:
+                if zPolar.val_angle() < 0:
+                    zPolar = zPolar.add_angle(self.TWOPI)
+                for j in range(1, self.power):
+                    if abs(zPolar.val_angle() - j*self.testAngle) < limit:
+                        return j + 1
+        return 0
+    
+    def iterate(self, xSeed, ySeed, x, y, colour, maxIter, limit):
+        #Find roots of 1 using Newton's method
+        #Internally:
+        #   0: root not yet determined
+        #   1, 2, 3... for each respective root
+        rootFound = 0
+        z = ComplexVar(x, y)
+        for i in range(maxIter):
+            if (x==0) and (y==0):
+                break
+            try:
+                divisor = z.power_dm(self.power - 1).times(self.power)
+                zNew = z.minus(z.power_dm(self.power).add_real(-1).divide(divisor))
+            except ArithmeticError:
+                print("Arithmetic Error: x={}, y={}, i={}".format(x, y, i))
+                break
+            rootFound = self.belongs_to_root(zNew, limit)
+            if rootFound:
+                return self.get_contour_colour(i)
+            z = zNew
+        #end_for_i
+        return colour
+
+#MAIN
 if __name__ == "__main__":
-    tc=0
+    tc=4
     if tc==0:
         myIter = RiemannIteration()
         myIter.run()
@@ -236,4 +357,11 @@ if __name__ == "__main__":
     if tc==2:
         myIter = MbrotRRealPower(xAngle=40, zAngle=70, zPower=2.2,\
                                     maxIter=60, palette = "9BL_GR")
+        myIter.run()
+    if tc==3:
+        myIter = NRCubeRoot1(xAngle=-30, zAngle=0, xSize=600, maxIter=12)
+        myIter.run()
+    if tc==4:
+        myIter = NRComplexRoot(8, xAngle=-30, zAngle=0, maxIter=60,
+                               limit=0.01)
         myIter.run()
