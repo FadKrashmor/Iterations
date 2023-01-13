@@ -44,6 +44,10 @@ Rev 3.0 - 03 Jan 23
 Rev 3.1 -04 Jan 23
     * Camel case vars in NCubeRoot1, nextafter now from numpy.
     * Class NComplexRoot added.
+Rev 3.2 - 13 Jan 23
+    * The *Root classes now have a switch so as to show either basins of
+      attraction or iteration contours.
+      
 @author: Owner
 (Many thanks to Karl-Heinz Becker and Michael Doerffler)
 """
@@ -725,6 +729,7 @@ class NCubeRoot1(GenIteration):
         kwargs.setdefault('palette', '4CAL_4')
         kwargs.setdefault('maxIter', 16)
         kwargs.setdefault("limit", 0.0025)
+        self.showBasins = kwargs.setdefault('showBasins', True)
         super().__init__(master, **kwargs)
 
     def belongs_to_root(self, x, y, limit):
@@ -755,7 +760,10 @@ class NCubeRoot1(GenIteration):
             yNew = 2*y/3 - 2*x*y/temp
             rootFound = self.belongs_to_root(xNew, yNew, limit)
             if rootFound:
-                return self.get_contour_colour(i, maxIter)
+                if self.showBasins == True:
+                    return self.get_contour_colour(rootFound, maxIter)
+                else:
+                    return self.get_contour_colour(i, maxIter)
             x = xNew
             y = yNew
         #end_for_i
@@ -774,10 +782,11 @@ class NComplexRoot(GenIteration):
         self.TWOPI = 2*pi
         self.power = n
         self.testAngle = self.TWOPI/n
-        kwargs.setdefault('setColour', [0xFF,0x40,0x40])
-        kwargs.setdefault('palette', '4CAL_4')
+        kwargs.setdefault('setColour', [0x03,0x03,0x03])
+        kwargs.setdefault('palette', '10CAL_10')
         kwargs.setdefault('maxIter', 20)
         kwargs.setdefault('limit', 0.005)
+        self.showBasins = kwargs.setdefault('showBasins', True)
         super().__init__(master, **kwargs)
         
     def belongs_to_root(self, z, limit):
@@ -813,7 +822,10 @@ class NComplexRoot(GenIteration):
                 break
             rootFound = self.belongs_to_root(zNew, limit)
             if rootFound:
-                return self.get_contour_colour(i, maxIter)
+                if self.showBasins == True:
+                    return self.get_contour_colour(rootFound, maxIter)
+                else:
+                    return self.get_contour_colour(i, maxIter)
             z = zNew
         #end_for_i
         return colour
@@ -875,9 +887,9 @@ if __name__ == "__main__":
     if current == "ms":
         myGUI = Burning(root, infColour=[0x10,0x03,0x10])
     if current == "n":
-        myGUI = NCubeRoot1(root, xSize=800, maxIter=12)
+        myGUI = NCubeRoot1(root, xSize=800, maxIter=12, showBasins=False)
     if current == "nz":
-        myGUI = NComplexRoot(root, 10, xSize=600, maxIter=12)
+        myGUI = NComplexRoot(root, 10, xSize=600, maxIter=20, showBasins=True)
     if current == "p":
         myGUI = MbrotRealPower(root, zPower=3.85, maxIter=60, limit=49)
     if current == "mag1":

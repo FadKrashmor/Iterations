@@ -28,6 +28,10 @@ Rev 1.3 - 04 Jan 23
       modified, isn't that just the problem!)
     * Added class NRComplexRoot, to show basins of attaction for the nth roots
       of one.
+Rev 1.4 - 13 Jan 23
+    * The *Root classes now have a switch so as to show either basins of
+      attraction or iteration contours.
+      
 @author: Owner
 (Many thanks to Karl-Heinz Becker and Michael Doerffler)
 """
@@ -169,8 +173,7 @@ class RiemannIteration():
             print("Couldn't save file")
 
 
-class MbrotRIter(RiemannIteration):
-        
+class MbrotRIter(RiemannIteration):    
     """
     Here follows an alternative version using (my own) ComplexVar, however ...
     it is much slower.
@@ -248,6 +251,7 @@ class NRCubeRoot1(RiemannIteration):
         kwargs.setdefault('maxIter', 16)
         kwargs.setdefault('limit', 0.0025)
         kwargs.setdefault('lines', False)
+        self.showBasins = kwargs.setdefault('showBasins', True)
         super().__init__(**kwargs)
 
     def belongs_to_root(self, x, y, limit):
@@ -281,7 +285,10 @@ class NRCubeRoot1(RiemannIteration):
                 break
             rootFound = self.belongs_to_root(xNew, yNew, limit)
             if rootFound:
-                return self.get_contour_colour(i)
+                if self.showBasins == True:
+                    return self.get_contour_colour(rootFound)
+                else:
+                    return self.get_contour_colour(i)
             x = xNew
             y = yNew
         #end_for_i
@@ -300,11 +307,12 @@ class NRComplexRoot(RiemannIteration):
         self.TWOPI = 2*pi
         self.power = n
         self.testAngle = self.TWOPI/n
-        kwargs.setdefault('setColour', [0xFF,0x40,0x40])
-        kwargs.setdefault('palette', '4CAL_4')
+        kwargs.setdefault('setColour', [0xFF,0xFF,0xFF])
+        kwargs.setdefault('palette', '8RAINBOW')
         kwargs.setdefault('maxIter', 20)
         kwargs.setdefault('limit', 0.005)
         kwargs.setdefault('lines', False)
+        self.showBasins = kwargs.setdefault('showBasins', True)
         super().__init__(**kwargs)
         
     def belongs_to_root(self, z, limit):
@@ -340,7 +348,10 @@ class NRComplexRoot(RiemannIteration):
                 break
             rootFound = self.belongs_to_root(zNew, limit)
             if rootFound:
-                return self.get_contour_colour(i)
+                if self.showBasins == True:
+                    return self.get_contour_colour(rootFound)
+                else:
+                    return self.get_contour_colour(i)
             z = zNew
         #end_for_i
         return colour
@@ -359,7 +370,9 @@ if __name__ == "__main__":
                                     maxIter=60, palette = "9BL_GR")
         myIter.run()
     if tc==3:
-        myIter = NRCubeRoot1(xAngle=-30, zAngle=0, xSize=600, maxIter=12)
+        myIter = NRCubeRoot1(xAngle=-30, zAngle=0, xSize=600, maxIter=12,
+                             palette="3CAL_11", showBasins=False,
+                             setColour=[0xF0,0x20,0x00])
         myIter.run()
     if tc==4:
         myIter = NRComplexRoot(8, xAngle=-30, zAngle=0, maxIter=60,
