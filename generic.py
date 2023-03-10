@@ -47,6 +47,8 @@ Rev 3.1 -04 Jan 23
 Rev 3.2 - 13 Jan 23
     * The *Root classes now have a switch so as to show either basins of
       attraction or iteration contours.
+Rev 3.3 - 10 Mar 23
+    * Removed the contour colouring mechanism introduced in R2.4.
       
 @author: Owner
 (Many thanks to Karl-Heinz Becker and Michael Doerffler)
@@ -100,8 +102,6 @@ class GenIteration():
             self.palette = ""
         self.contourColours = myColour.get_palette(self.palette)
         self.contourInputActive = False
-        self.redField = False
-        self.REDOFFSET = 0
 
         self.ABSURD_ITER = 10000
 
@@ -192,11 +192,6 @@ class GenIteration():
         self.yAutoButton.grid(row=self.currentRow, column=self.currentColumn)
 
         self.currentColumn += 1
-        self.redButton = Button(self.frame, text="Red!", \
-                                 width=6, command=self.toggle_redField)
-        self.redButton.grid(row=self.currentRow, column=self.currentColumn)
-
-        self.currentColumn += 1
         self.moreButton = Button(self.frame, text="More", \
                                  width=6, command=self.more_input)
         self.moreButton.grid(row=self.currentRow, column=self.currentColumn)
@@ -220,27 +215,13 @@ class GenIteration():
             self.yEntry2.insert(0, str(self.yEnd))
         except ValueError:
             self.messageText.set(self.MESSAGES[2])
-        
-    def toggle_redField(self):
-        if self.redField == False:
-            self.redField = True
-            self.redButton.config(relief="sunken")
-        else:
-            self.redField = False
-            self.redButton.config(relief="raised")
-        print("red!", self.redField)
 
     def more_input(self):
         #The assumption is that the user now wants contours to be shown.
         #Adjustments to how they are displayed are made possible below.
         #Further, there is a facility to set the seed value for z.
         self.moreButton["state"] = "disable"
-        if self.redField == True:
-            self.redField = False
-            self.redButton.config(relief="raised")
-        print("red!", self.redField)
         self.contourInputActive = True
-        self.contourSmooth = False
         self.currentRow += 1
 
         self.currentColumn = 0
@@ -420,38 +401,15 @@ class GenIteration():
         else:
             self.messageText.set(self.MESSAGES[5])
 
-    def get_contour_colour(self, i, maxIter):
+    def get_contour_colour(self, i):
         colour = self.infColour #Default case
         #
-        if self.redField == True:
-            """
-            This gives continuously varying monochrome red addition to the
-            colour specified as infColour.
-            """
-            colour = self.infColour.copy()
-            remaining = maxIter - i
-            if remaining < self.REDOFFSET:
-                #so that we get some bright pixels next to the set
-                colour[0] = 256 - remaining
-                colour[1] = 256 - remaining
-            else:
-                if maxIter < 256:
-                    colour[0] = (colour[0] + i)
-                else:
-                    iterationFactor = int((i)*256/maxIter)
-                    colour[0] = (colour[0] + iterationFactor)
-        #
-        else:
-            if self.contourInputActive == True:
-                if i > self.contourStart:
-                    """
-                    Here we cycle around the palette as many times as required.
-                    """
-                    #   But you could simply do the following to get one of 
-                    #   each colour:
-                    #   iterationFactor = i/maxIter
-                    #   i = int(iterationFactor*len(self.contourColours))
-                    colour = self.contourColours[i%len(self.contourColours)]
+        if self.contourInputActive == True:
+            if i > self.contourStart:
+                """
+                Here we cycle around the palette as many times as required.
+                """
+                colour = self.contourColours[i%len(self.contourColours)]
         return colour
 
     def create_image(self):        
@@ -573,7 +531,7 @@ class Julia(GenIteration):
             zReal, zImag, rSq = self.function(zReal, zImag, cReal, cImag)
             #Test
             if rSq > limit:
-                colour = self.get_contour_colour(i, maxIter)
+                colour = self.get_contour_colour(i)
                 break
         #end_for_i
         return colour
@@ -612,7 +570,7 @@ class Mandelbrot(GenIteration):
             zReal, zImag, rSq = self.function(zReal, zImag, cReal, cImag)
             #Test
             if rSq > limit:
-                colour = self.get_contour_colour(i, maxIter)
+                colour = self.get_contour_colour(i)
                 break
         #end_for_i
         return colour
@@ -652,7 +610,7 @@ class MbrotRealPower(GenIteration):
             var1 = var1.power_dm(self.zPower).plus(var2)
             #Test
             if var1.abs_val() > limit:
-                colour = self.get_contour_colour(i, maxIter)
+                colour = self.get_contour_colour(i)
                 break
         #end_for_i
         return colour
@@ -761,9 +719,9 @@ class NCubeRoot1(GenIteration):
             rootFound = self.belongs_to_root(xNew, yNew, limit)
             if rootFound:
                 if self.showBasins == True:
-                    return self.get_contour_colour(rootFound, maxIter)
+                    return self.get_contour_colour(rootFound)
                 else:
-                    return self.get_contour_colour(i, maxIter)
+                    return self.get_contour_colour(i)
             x = xNew
             y = yNew
         #end_for_i
@@ -823,9 +781,9 @@ class NComplexRoot(GenIteration):
             rootFound = self.belongs_to_root(zNew, limit)
             if rootFound:
                 if self.showBasins == True:
-                    return self.get_contour_colour(rootFound, maxIter)
+                    return self.get_contour_colour(rootFound)
                 else:
-                    return self.get_contour_colour(i, maxIter)
+                    return self.get_contour_colour(i)
             z = zNew
         #end_for_i
         return colour
@@ -856,7 +814,7 @@ class MagModel1(GenIteration):
             var1 = self.function(var1, var2)
             #Test
             if var1.abs_val() > limit:
-                colour = self.get_contour_colour(i, maxIter)
+                colour = self.get_contour_colour(i)
                 break
         #end_for_i
         return colour
@@ -870,7 +828,7 @@ class MagModel1(GenIteration):
 MAIN
 """
 if __name__ == "__main__":
-    current = "nz"
+    current = "m2"
     root = Tk()
     if current == "g":
         myGUI = GenIteration(root)
@@ -880,7 +838,7 @@ if __name__ == "__main__":
     if current == "m":
         myGUI = Mandelbrot(root, palette="9BL_GR", limit=4)
     if current == "m2":
-        myGUI = Mandelbrot(root, xStart=0.6258, xEnd=0.6264, yStart=0.40332, 
+        myGUI = Mandelbrot(root, xStart=-0.6258, xEnd=-0.6264, yStart=0.40332, 
                            xSize=600, palette="10CAL_10", maxIter=550)
     if current == "mb":
         myGUI = Mandelbar(root, palette="9BL_GR")
